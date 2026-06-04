@@ -139,18 +139,32 @@ rollback); Delete calls `AddressRemove`. The `address` is replace-only.
 | `adminPassword`       | `MOX_ADMIN_PASSWORD`  | yes    | Used for LoginPrep/Login                |
 | `insecureSkipVerify`  | —                     | no     | Dev/self-signed only                    |
 
-### Reaching the admin API over an SSH tunnel
+### Reaching a non-public admin API
 
 The mox admin API is sensitive and is usually not exposed to the public
-internet. A common setup is to keep it bound to `localhost` (or a private
-interface) on the mail host and reach it through SSH. Pulumi has no built-in
-tunnelling feature — like every other provider, the convention is: **open the
-tunnel yourself, then point `adminUrl` (or a proxy variable) at it.** The
-provider's HTTP client is a clone of Go's `http.DefaultTransport`, so it already
-honours the standard `HTTP_PROXY` / `HTTPS_PROXY` / `ALL_PROXY` / `NO_PROXY`
-environment variables with no code changes.
+internet — it's commonly bound to `localhost` (or a private interface) on the
+mail host. The provider only needs to be able to reach `adminUrl`; **how you
+make that endpoint reachable is entirely up to you.** Pulumi has no built-in
+tunnelling feature, and the provider does not open connections for you. Any of
+these work, pick whatever fits your environment:
 
-There are two practical approaches.
+- a mesh/overlay VPN (WireGuard, Tailscale, etc.) so the host is reachable on a
+  private address;
+- a bastion / jump host;
+- private network peering, or simply running Pulumi from inside the same
+  network;
+- a reverse proxy that terminates TLS with a valid certificate;
+- an SSH tunnel (shown below) — a zero-infrastructure option that's handy for
+  one-off or local runs.
+
+The rest of this section walks through the SSH-tunnel option as a concrete
+**suggestion**, not a requirement. The provider's HTTP client is a clone of
+Go's `http.DefaultTransport`, so it already honours the standard `HTTP_PROXY` /
+`HTTPS_PROXY` / `ALL_PROXY` / `NO_PROXY` environment variables with no code
+changes — which is what makes the SOCKS approach below work without touching the
+provider.
+
+There are two practical SSH approaches.
 
 #### 1. Local port forward (recommended)
 
