@@ -37,9 +37,9 @@ gives a typed, multi-language, drift-aware way to do that.
 ```
 provider/
   provider.go                  Config + Provider() builder (infer wiring)
-  domain.go                    Domain resource — FULLY WIRED reference impl
-  account.go                   Account resource — STUB (create/delete only)
-  address.go                   Address resource — STUB (create/delete only)
+  domain.go                    Domain resource — full CRUD
+  account.go                   Account resource — full CRUD
+  address.go                   Address resource — full CRUD
   cmd/pulumi-resource-mox/
     main.go                    Plugin entrypoint
 internal/moxadmin/
@@ -138,6 +138,78 @@ rollback); Delete calls `AddressRemove`. The `address` is replace-only.
 | `adminUrl`            | `MOX_ADMIN_URL`       | no     | Base admin URL (no `/admin/api` suffix) |
 | `adminPassword`       | `MOX_ADMIN_PASSWORD`  | yes    | Used for LoginPrep/Login                |
 | `insecureSkipVerify`  | —                     | no     | Dev/self-signed only                    |
+
+### Reaching the admin API over an SSH tunnel
+
+The mox admin API is sensitive and is usually not exposed to the public
+internet. A common setup is to keep it bound to `localhost` (or a private
+interface) on the mail host and reach it through SSH. Pulumi has no built-in
+tunnelling feature — like every other provider, the convention is: **open the
+tunnel yourself, then point `adminUrl` (or a proxy variable) at it.** The
+provider's HTTP client is a clone of Go's `http.DefaultTransport`, so it already
+honours the standard `HTTP_PROXY` / `HTTPS_PROXY` / `ALL_PROXY` / `NO_PROXY`
+environment variables with no code changes.
+
+There are two practical approaches.
+
+#### 1. Local port forward (recommended)
+
+Forward a local port to the admin port on the mail host:
+
+```sh
+# foreground; Ctrl-C to close
+ssh -L 8443:localhost:443 user@mail.example.com
+
+# or background it (-f -N = no remote command, go to background)
+ssh -f -N -L 8443:localhost:443 user@mail.example.com
+```
+
+`localhost:443` is resolved **on the mail host**, so this also works when the
+admin interface is only listening on the host's loopback.
+
+The catch is TLS: the mox certificate is issued for `mail.example.com`, not
+`localhost`, so pointing `adminUrl` at `https://localhost:8443` fails
+hostname verification. Pick one:
+
+- **Map the real hostname to the tunnel** (keeps verification on — preferred).
+  Add a hosts entry so the real name resolves to loopback:
+
+  ```sh
+  echo "127.0.0.1 mail.example.com" | sudo tee -a /etc/hosts
+  ```
+
+  then forward on the real port and use the real URL:
+
+  ```sh
+  ssh -f -N -L 443:localhost:443 user@mail.example.com   # needs local root for :443
+  pulumi config set mox:adminUrl https://mail.example.com
+  ```
+
+- **Skip verification** (quick, less safe — dev only):
+
+  ```sh
+  pulumi config set mox:adminUrl https://localhost:8443
+  pulumi config set mox:insecureSkipVerify true
+  ```
+
+#### 2. SOCKS proxy (`ssh -D`)
+
+If you do not want per-host forwards, open a dynamic SOCKS proxy and let the
+provider route through it. This preserves TLS verification because the request
+still targets the real hostname:
+
+```sh
+ssh -f -N -D 1080 user@mail.example.com
+
+# socks5h = resolve DNS through the proxy too
+export ALL_PROXY=socks5h://localhost:1080
+pulumi config set mox:adminUrl https://mail.example.com
+pulumi up
+```
+
+`HTTPS_PROXY` works the same way for an HTTP/HTTPS forward proxy. Note that a
+plain `ssh -L` local forward is **not** an HTTP proxy, so don't set
+`HTTPS_PROXY` to a forwarded port — use approach 1's `adminUrl` instead.
 
 ## Build / test / release
 
