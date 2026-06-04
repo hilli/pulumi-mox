@@ -261,8 +261,3 @@ Done: idempotent Create (adopt on "already exists"), `Update` for
 Account/Address, `Read` refresh on all resources, and sherpa `user:*` error
 mapping into Pulumi diagnostics.
 
-## Related
-
-- `../mox` — the mox fork (admin API source of truth).
-- A consuming program imports this provider's SDK to declare domains/accounts
-  and feed `dnsRecords` into a DNS provider such as Cloudflare.
