@@ -1,0 +1,5 @@
+[tools]
+go = "1.25"
+
+# After entering this directory, activate mise so the pinned Go toolchain is on PATH:
+#   eval "$(mise activate bash)"

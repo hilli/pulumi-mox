@@ -1,0 +1,13 @@
+# Build output
+/bin/
+
+# Generated SDKs (regenerate with `make gen_sdk`)
+/sdk/
+
+# Rendered credentials / local secrets — never commit
+*.env
+.env
+*.secret
+
+# Editor / OS noise
+.DS_Store

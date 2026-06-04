@@ -1,0 +1,23 @@
+name: mox-example
+runtime: yaml
+description: Smoke example for the native mox provider.
+
+config:
+  mox:adminUrl:
+    type: string
+    default: https://mox-admin.example.com
+  # Set the admin password via:
+  #   pulumi config set --secret mox:adminPassword <password>
+  # or the MOX_ADMIN_PASSWORD environment variable.
+
+resources:
+  example:
+    type: mox:Domain
+    properties:
+      domain: example.com
+      # account defaults to the domain name; localpart defaults to "postmaster".
+
+outputs:
+  # The mox-generated zone-file lines (MX, SPF, DKIM, DMARC, ...). Feed these
+  # into your DNS provider (e.g. Cloudflare).
+  dnsRecords: ${example.dnsRecords}
