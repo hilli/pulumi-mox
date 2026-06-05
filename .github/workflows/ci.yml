@@ -51,5 +51,45 @@ jobs:
       - name: Build
         run: make build
 
+      # The Go SDK under sdk/go is committed and tagged so `go get` works. These
+      # checks guarantee it stays in lock-step with the provider schema/version.
+      - name: Verify committed Go SDK is in sync
+        run: |
+          set -euo pipefail
+          version="$(sed -n 's/^var Version = "\(.*\)"/\1/p' provider/provider.go)"
+          if [ -z "$version" ]; then
+            echo "::error::could not parse Version from provider/provider.go"
+            exit 1
+          fi
+
+          # Module path must match the goImportPath baked into the schema.
+          want_mod="module github.com/hilli/pulumi-mox/sdk/go"
+          if ! head -1 sdk/go/go.mod | grep -qxF "$want_mod"; then
+            echo "::error::sdk/go/go.mod module path mismatch (expected '$want_mod')"
+            head -1 sdk/go/go.mod
+            exit 1
+          fi
+
+          # Committed SDK version must equal the provider Version (and release tag).
+          sdk_version="$(sed -n 's/.*"version": "\(.*\)".*/\1/p' sdk/go/mox/pulumi-plugin.json)"
+          if [ "$sdk_version" != "$version" ]; then
+            echo "::error::committed Go SDK version ($sdk_version) != provider Version ($version)"
+            exit 1
+          fi
+
+          # Regenerate from the freshly built plugin and fail on any drift.
+          rm -rf /tmp/sdkcheck
+          pulumi package gen-sdk ./bin/pulumi-resource-mox --language go --version "$version" -o /tmp/sdkcheck
+          if ! diff -ru sdk/go/mox /tmp/sdkcheck/go/mox; then
+            echo "::error::Committed Go SDK is stale. Run 'make gen_go_sdk && make sdk_build' and commit the result."
+            exit 1
+          fi
+
+      - name: Build & vet Go SDK module
+        run: |
+          cd sdk/go
+          go build ./...
+          go vet ./...
+
       - name: Test
         run: go test -race -coverprofile=coverage.out ./...

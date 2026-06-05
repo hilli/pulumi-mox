@@ -4,8 +4,10 @@
 # GoReleaser output
 /dist/
 
-# Generated SDKs (regenerate with `make gen_sdk`)
-/sdk/
+# Generated SDKs. The Go SDK (sdk/go) is committed and tagged so `go get` works;
+# all other language SDKs are generated on demand via `pulumi package add`.
+/sdk/*
+!/sdk/go/
 
 # Rendered credentials / local secrets — never commit
 *.env
