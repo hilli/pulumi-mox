@@ -1,0 +1,31 @@
+name: Release
+
+# Cut a release when a semver tag is pushed, e.g. `git tag v0.1.0 && git push --tags`.
+on:
+  push:
+    tags:
+      - "v*"
+
+# GoReleaser needs write access to create the GitHub Release and upload assets.
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: goreleaser
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # GoReleaser needs full history and tags to build the changelog.
+          fetch-depth: 0
+
+      - name: Install pinned toolchain (Go, GoReleaser)
+        uses: jdx/mise-action@v2
+
+      - name: Run GoReleaser
+        run: goreleaser release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
