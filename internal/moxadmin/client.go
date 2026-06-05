@@ -316,6 +316,64 @@ func (c *Client) Domains(ctx context.Context) ([]Domain, error) {
 	return domains, nil
 }
 
+// DomainDescriptionSave sets the domain's free-form description.
+func (c *Client) DomainDescriptionSave(ctx context.Context, domain, description string) error {
+	return c.Call(ctx, "DomainDescriptionSave", []any{domain, description}, nil)
+}
+
+// DomainClientSettingsDomainSave sets the domain's client-settings domain (the
+// hostname clients should use for IMAP/SMTP autoconfiguration). An empty string
+// clears it.
+func (c *Client) DomainClientSettingsDomainSave(ctx context.Context, domain, clientSettingsDomain string) error {
+	return c.Call(ctx, "DomainClientSettingsDomainSave", []any{domain, clientSettingsDomain}, nil)
+}
+
+// DomainDisabledSave marks the domain as administratively disabled (or enabled).
+func (c *Client) DomainDisabledSave(ctx context.Context, domain string, disabled bool) error {
+	return c.Call(ctx, "DomainDisabledSave", []any{domain, disabled}, nil)
+}
+
+// DomainLocalpartConfigSave sets the catch-all separators and case-sensitivity
+// for the domain's localparts. A nil/empty separator slice clears the separators.
+// mox rejects separators that collide with existing DMARC/TLSRPT localparts.
+func (c *Client) DomainLocalpartConfigSave(ctx context.Context, domain string, separators []string, caseSensitive bool) error {
+	if separators == nil {
+		separators = []string{}
+	}
+	return c.Call(ctx, "DomainLocalpartConfigSave", []any{domain, separators, caseSensitive}, nil)
+}
+
+// DomainDMARCAddressSave configures (or clears) the DMARC aggregate-report
+// destination for the domain. An empty localpart clears the DMARC config.
+func (c *Client) DomainDMARCAddressSave(ctx context.Context, domain, localpart, addressDomain, account, mailbox string) error {
+	return c.Call(ctx, "DomainDMARCAddressSave", []any{domain, localpart, addressDomain, account, mailbox}, nil)
+}
+
+// DomainTLSRPTAddressSave configures (or clears) the TLSRPT report destination
+// for the domain. An empty localpart clears the TLSRPT config.
+func (c *Client) DomainTLSRPTAddressSave(ctx context.Context, domain, localpart, addressDomain, account, mailbox string) error {
+	return c.Call(ctx, "DomainTLSRPTAddressSave", []any{domain, localpart, addressDomain, account, mailbox}, nil)
+}
+
+// DomainMTASTSSave configures (or clears) the domain's MTA-STS policy. An empty
+// policyID clears the policy. maxAge is in nanoseconds (a Go time.Duration). A
+// nil/empty mx slice is sent as an empty list.
+func (c *Client) DomainMTASTSSave(ctx context.Context, domain, policyID, mode string, maxAge int64, mx []string) error {
+	if mx == nil {
+		mx = []string{}
+	}
+	return c.Call(ctx, "DomainMTASTSSave", []any{domain, policyID, mode, maxAge, mx}, nil)
+}
+
+// DomainRoutesSave replaces the domain's outgoing routing rules. A nil/empty
+// slice clears the domain's routes.
+func (c *Client) DomainRoutesSave(ctx context.Context, domain string, routes []Route) error {
+	if routes == nil {
+		routes = []Route{}
+	}
+	return c.Call(ctx, "DomainRoutesSave", []any{domain, routes}, nil)
+}
+
 // AccountAdd adds a new account with an initial address.
 func (c *Client) AccountAdd(ctx context.Context, accountName, address string) error {
 	return c.Call(ctx, "AccountAdd", []any{accountName, address}, nil)
@@ -507,11 +565,50 @@ type Alias struct {
 	AllowMsgFrom bool `json:"AllowMsgFrom"`
 }
 
+// DomainReportAddress is the reporting-address configuration shared by the
+// domain's DMARC and TLSRPT settings. Domain may be empty, in which case mox
+// defaults the reporting domain to the domain itself at config load. The full
+// mox struct carries additional read-only parsed fields; unknown JSON keys are
+// ignored on read and the parsed fields are left zero on write.
+type DomainReportAddress struct {
+	// Localpart is the local part of the report destination address.
+	Localpart string `json:"Localpart"`
+	// Domain is the report destination's domain. Empty means the domain itself.
+	Domain string `json:"Domain"`
+	// Account is the mox account that receives the reports.
+	Account string `json:"Account"`
+	// Mailbox is the destination mailbox within the account.
+	Mailbox string `json:"Mailbox"`
+}
+
+// DomainMTASTS mirrors mox's MTA-STS policy configuration for a domain. MaxAge
+// is in nanoseconds (a Go time.Duration) on the wire.
+type DomainMTASTS struct {
+	// PolicyID identifies the policy version; changing it signals an update.
+	PolicyID string `json:"PolicyID"`
+	// Mode is the MTA-STS mode: "enforce", "testing" or "none".
+	Mode string `json:"Mode"`
+	// MaxAge is the policy lifetime in nanoseconds.
+	MaxAge int64 `json:"MaxAge"`
+	// MX lists the permitted MX host patterns.
+	MX []string `json:"MX"`
+}
+
 // DomainConfig mirrors the subset of mox's config.Domain returned by the sherpa
 // DomainConfig method. Aliases is keyed by the alias localpart (the part before
-// "@"). Unknown JSON keys are ignored.
+// "@"). Nullable nested configs (DMARC/MTASTS/TLSRPT) are nil when unset.
+// Unknown JSON keys are ignored.
 type DomainConfig struct {
-	Aliases map[string]Alias `json:"Aliases"`
+	Disabled                    bool                 `json:"Disabled"`
+	Description                 string               `json:"Description"`
+	ClientSettingsDomain        string               `json:"ClientSettingsDomain"`
+	LocalpartCatchallSeparators []string             `json:"LocalpartCatchallSeparators"`
+	LocalpartCaseSensitive      bool                 `json:"LocalpartCaseSensitive"`
+	DMARC                       *DomainReportAddress `json:"DMARC"`
+	MTASTS                      *DomainMTASTS        `json:"MTASTS"`
+	TLSRPT                      *DomainReportAddress `json:"TLSRPT"`
+	Routes                      []Route              `json:"Routes"`
+	Aliases                     map[string]Alias     `json:"Aliases"`
 }
 
 // Alias returns the alias with the given localpart, matching case-insensitively,

@@ -51,15 +51,18 @@ optional fields on `mox:Domain`; larger ones (DKIM keys) may warrant their own
 resource.
 
 - [ ] `DomainDKIMAdd` / `DomainDKIMRemove` / `DomainDKIMSave` — DKIM selectors &
-      keys. Strong candidate for a dedicated `mox:DomainDKIM` resource.
-- [ ] `DomainMTASTSSave` — MTA-STS policy.
-- [ ] `DomainTLSRPTAddressSave` — TLS reporting address.
-- [ ] `DomainDMARCAddressSave` — DMARC aggregate-report address.
-- [ ] `DomainRoutesSave` — per-domain routing.
-- [ ] `DomainDescriptionSave` — free-text description.
-- [ ] `DomainClientSettingsDomainSave` — autoconfig client-settings domain.
-- [ ] `DomainLocalpartConfigSave` — localpart catchall/case rules.
-- [ ] `DomainDisabledSave` — enable/disable a domain without removing it.
+      keys. Strong candidate for a dedicated `mox:DomainDKIM` resource. (Deferred.)
+- [x] `DomainMTASTSSave` — MTA-STS policy (`mtaSts` field + `Update`).
+- [x] `DomainTLSRPTAddressSave` — TLS reporting address (`tlsRpt` field + `Update`).
+- [x] `DomainDMARCAddressSave` — DMARC aggregate-report address (`dmarc` field + `Update`).
+- [x] `DomainRoutesSave` — per-domain routing (`routes` field + `Update`).
+- [x] `DomainDescriptionSave` — free-text description (`description` field + `Update`).
+- [x] `DomainClientSettingsDomainSave` — autoconfig client-settings domain
+      (`clientSettingsDomain` field + `Update`).
+- [x] `DomainLocalpartConfigSave` — localpart catchall/case rules
+      (`localpartConfig` field + `Update`).
+- [x] `DomainDisabledSave` — enable/disable a domain without removing it
+      (`disabled` now mutable via `Update`).
 
 ## 4. Read-only data sources (Pulumi invokes / functions)
 
