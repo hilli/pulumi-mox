@@ -1,6 +1,9 @@
 # Build output
 /bin/
 
+# GoReleaser output
+/dist/
+
 # Generated SDKs (regenerate with `make gen_sdk`)
 /sdk/
 
