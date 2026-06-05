@@ -93,6 +93,11 @@ func Provider() (p.Provider, error) {
 		WithNamespace("hilli").
 		WithDisplayName("mox").
 		WithDescription("Manage mox mail server domains, accounts and addresses via the admin API.").
+		WithHomepage("https://github.com/hilli/pulumi-mox").
+		WithRepository("https://github.com/hilli/pulumi-mox").
+		WithLicense("MIT").
+		WithPluginDownloadURL("github://api.github.com/hilli/pulumi-mox").
+		WithGoImportPath("github.com/hilli/pulumi-mox/sdk/go/mox").
 		WithConfig(infer.Config(&Config{})).
 		WithModuleMap(map[tokens.ModuleName]tokens.ModuleName{
 			"provider": "index",

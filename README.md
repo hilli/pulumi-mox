@@ -9,9 +9,10 @@ programmed into a DNS provider (e.g. Cloudflare).
 
 > **Status: usable.** This repository compiles, vets cleanly, and ships three
 > fully-wired resources (`Domain`, `Account`, `Address`) with idempotent Create,
-> Read-based drift detection, Update, and Delete. See the
-> [Open items](#open-items) section for what remains (DNS invoke, SDK
-> publishing).
+> Read-based drift detection, Update, and Delete. A committed, tagged Go SDK is
+> published; other languages are generated on demand (see
+> [Install / use](#install--use)). See [Open items](#open-items) for what
+> remains.
 
 ---
 
@@ -21,6 +22,35 @@ A mail migration consuming this provider needs to declare mox domains and
 accounts as infrastructure and feed mox's generated DNS records into Cloudflare,
 instead of running ad-hoc `docker exec mox mox ...` commands. A native provider
 gives a typed, multi-language, drift-aware way to do that.
+
+## Install / use
+
+The provider ships a prebuilt plugin (GitHub releases) plus a committed, tagged
+**Go SDK**. Other languages are generated on demand with `pulumi package add` —
+this works because the published schema carries the correct repository, license,
+plugin-download URL and Go import path.
+
+> Replace `X.Y.Z` with a released version — see
+> [Releases](https://github.com/hilli/pulumi-mox/releases) (e.g. `0.1.0`).
+
+### Go
+
+```sh
+go get github.com/hilli/pulumi-mox/sdk/go/mox@vX.Y.Z
+```
+
+The plugin-download URL is baked into the SDK, so Pulumi auto-installs the
+matching plugin binary at deploy time — no separate `plugin install` step.
+
+### Other languages (Python, Node.js, .NET, Java, YAML)
+
+Install the plugin from GitHub, then add the package to your project (Pulumi
+generates a local SDK from the provider's schema):
+
+```sh
+pulumi plugin install resource mox X.Y.Z --server github://api.github.com/hilli/pulumi-mox
+pulumi package add mox@X.Y.Z
+```
 
 ## Architecture
 
@@ -240,8 +270,14 @@ make build           # -> bin/pulumi-resource-mox
 make vet             # go vet ./...
 make test            # go test ./...
 make install_plugin  # install the built plugin into the local Pulumi cache
-make gen_sdk         # generate language SDKs into sdk/ (do NOT commit blindly)
+make gen_sdk         # generate ALL language SDKs into sdk/ (scratch; gitignored except sdk/go)
+make gen_go_sdk      # regenerate the committed Go SDK (sdk/go/mox) at $(VERSION)
+make sdk_build       # tidy + build the committed Go SDK module
 ```
+
+The Go SDK under `sdk/go` is committed and CI-verified against the schema. After
+changing resources/config, run `make gen_go_sdk && make sdk_build` and commit the
+result so `go get` consumers stay in sync; CI fails on drift.
 
 To try the example against a dev mox:
 
@@ -295,8 +331,9 @@ These are left for the implementer:
 
 - **DNS invoke:** consider exposing a `getDomainRecords` invoke in addition to
   the `Domain.dnsRecords` output.
-- **Schema/SDK publishing:** decide on versioning + whether to commit generated
-  SDKs (`gen_sdk`) or publish to the Pulumi registry.
+- **Registry publishing:** the Go SDK is committed + tagged and other languages
+  resolve on demand via `pulumi package add`; publishing to PyPI/npm/NuGet or the
+  Pulumi registry is still optional and not done.
 
 Done: idempotent Create (adopt on "already exists"), `Update` for
 Account/Address, `Read` refresh on all resources, and sherpa `user:*` error

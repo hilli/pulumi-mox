@@ -10,6 +10,12 @@ on:
 permissions:
   contents: write
 
+# Never run two releases for the same tag at once; serialize to avoid racing on
+# tag/release creation.
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
 jobs:
   release:
     name: goreleaser
@@ -24,6 +30,64 @@ jobs:
 
       - name: Install pinned toolchain (Go, GoReleaser)
         uses: jdx/mise-action@v2
+
+      # Guard against shipping a release whose committed Go SDK does not match the
+      # tag. The SDK is generated with the version baked in, so it must equal the tag.
+      - name: Preflight — verify committed Go SDK matches tag
+        run: |
+          set -euo pipefail
+          tag="${{ github.ref_name }}"
+          version="${tag#v}"
+
+          provider_version="$(sed -n 's/^var Version = "\(.*\)"/\1/p' provider/provider.go)"
+          if [ "$provider_version" != "$version" ]; then
+            echo "::error::provider Version ($provider_version) != release tag ($tag)"
+            exit 1
+          fi
+
+          sdk_version="$(sed -n 's/.*"version": "\(.*\)".*/\1/p' sdk/go/mox/pulumi-plugin.json)"
+          if [ "$sdk_version" != "$version" ]; then
+            echo "::error::committed Go SDK version ($sdk_version) != release tag ($tag)"
+            exit 1
+          fi
+
+          make build
+          rm -rf /tmp/sdkcheck
+          pulumi package gen-sdk ./bin/pulumi-resource-mox --language go --version "$version" -o /tmp/sdkcheck
+          if ! diff -ru sdk/go/mox /tmp/sdkcheck/go/mox; then
+            echo "::error::Committed Go SDK is stale for $tag. Regenerate with 'make gen_go_sdk' and re-tag."
+            exit 1
+          fi
+
+          # Prove the module that gets tagged below actually compiles at this tag.
+          ( cd sdk/go && go build ./... && go vet ./... )
+
+      # Publish the Go module under its own tag prefix so consumers can
+      # `go get github.com/hilli/pulumi-mox/sdk/go/mox@vX.Y.Z`. Done BEFORE the
+      # GitHub release (non-idempotent) so a GoReleaser retry can't strand a
+      # published release without its matching, fetchable Go SDK tag. Idempotent:
+      # safe to re-run, and fails loudly if the tag exists on a different commit.
+      - name: Tag Go SDK module
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          sdk_tag="sdk/go/v${version}"
+          head_sha="$(git rev-parse HEAD)"
+          remote_sha="$(git ls-remote --tags origin "refs/tags/${sdk_tag}" | awk 'NR==1{print $1}')"
+          if [ -n "$remote_sha" ]; then
+            if [ "$remote_sha" = "$head_sha" ]; then
+              echo "Tag ${sdk_tag} already points at ${head_sha}; nothing to do."
+              exit 0
+            fi
+            echo "::error::Tag ${sdk_tag} exists but points at ${remote_sha}, not release commit ${head_sha}."
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag "${sdk_tag}"
+          git push origin "${sdk_tag}"
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
 
       - name: Run GoReleaser
         run: goreleaser release --clean

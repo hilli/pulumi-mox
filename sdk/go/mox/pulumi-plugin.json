@@ -1,0 +1,6 @@
+{
+  "resource": true,
+  "name": "mox",
+  "version": "0.1.0",
+  "server": "github://api.github.com/hilli/pulumi-mox"
+}
