@@ -69,14 +69,14 @@ resource.
 These return state with no mutation — expose as invokes (`getX`) rather than
 resources.
 
-- [ ] `CheckDomain(domain)` — DNS/config health report (useful as a function).
-- [ ] `Domain(domain)` / `DomainConfig(domain)` — full domain config readout.
-- [ ] `DomainLocalparts(domain)` — list localparts in a domain.
-- [ ] `ClientConfigsDomain(domain)` — autoconfig/autodiscover client settings.
-- [ ] `Version()` — server version (handy for diagnostics).
-- [ ] `Config()` / `ConfigFiles()` — effective server config.
-- [ ] `TLSPublicKeys(accountFullName)` — list TLS client-auth public keys.
-- [ ] `LoginAttempts(...)` — recent login attempts (security audit).
+- [x] `CheckDomain(domain)` — DNS/config health report (useful as a function).
+- [x] `Domain(domain)` / `DomainConfig(domain)` — full domain config readout.
+- [x] `DomainLocalparts(domain)` — list localparts in a domain.
+- [x] `ClientConfigsDomain(domain)` — autoconfig/autodiscover client settings.
+- [x] `Version()` — server version (handy for diagnostics).
+- [x] `Config()` / `ConfigFiles()` — effective server config.
+- [x] `TLSPublicKeys(accountFullName)` — list TLS client-auth public keys.
+- [x] `LoginAttempts(...)` — recent login attempts (security audit).
 
 ## 5. Out of scope (operational / runtime)
 

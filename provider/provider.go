@@ -99,5 +99,17 @@ func Provider() (p.Provider, error) {
 			infer.Resource(&Address{}),
 			infer.Resource(&Alias{}),
 		).
+		WithFunctions(
+			infer.Function(&GetVersion{}),
+			infer.Function(&GetCheckDomain{}),
+			infer.Function(&GetDomain{}),
+			infer.Function(&GetDomainConfig{}),
+			infer.Function(&GetDomainLocalparts{}),
+			infer.Function(&GetClientConfigsDomain{}),
+			infer.Function(&GetConfig{}),
+			infer.Function(&GetConfigFiles{}),
+			infer.Function(&GetTLSPublicKeys{}),
+			infer.Function(&GetLoginAttempts{}),
+		).
 		Build()
 }
