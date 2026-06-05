@@ -2,6 +2,8 @@
 go = "1.25"
 # Pinned to match the pulumi/sdk/v3 version this provider depends on.
 pulumi = "3.232.0"
+# Linter, pinned so local and CI runs use the exact same version.
+golangci-lint = "2.12.2"
 
 # After entering this directory, activate mise so the pinned Go toolchain is on PATH:
 #   eval "$(mise activate bash)"
