@@ -158,7 +158,7 @@ func (c *Client) post(ctx context.Context, method string, params []any, withCSRF
 	if err != nil {
 		return fmt.Errorf("calling %s: %w", method, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	raw, err := io.ReadAll(resp.Body)
 	if err != nil {

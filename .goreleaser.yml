@@ -1,0 +1,66 @@
+# GoReleaser configuration for the mox Pulumi provider.
+#
+# Produces the cross-platform plugin archives that Pulumi expects when
+# installing a resource provider from GitHub Releases, e.g.:
+#   pulumi plugin install resource mox <version> \
+#     --server github://api.github.com/hilli
+#
+# Pulumi resolves an asset named exactly
+#   pulumi-resource-mox-v<VERSION>-<os>-<arch>.tar.gz
+# (os/arch use Go's GOOS/GOARCH) containing only the plugin binary at the
+# archive root. Run `goreleaser release --snapshot --clean` for a local
+# dry-run that does not publish anything.
+version: 2
+
+project_name: pulumi-mox
+
+builds:
+  - id: provider
+    main: ./provider/cmd/pulumi-resource-mox
+    binary: pulumi-resource-mox
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    # Inject the release version into the same variable the Makefile uses.
+    ldflags:
+      - -s -w -X github.com/hilli/pulumi-mox/provider.Version={{ .Version }}
+
+archives:
+  - id: provider
+    ids:
+      - provider
+    # Pulumi's expected asset naming convention.
+    name_template: "pulumi-resource-mox-v{{ .Version }}-{{ .Os }}-{{ .Arch }}"
+    # Pulumi uses tar.gz on every platform, including Windows.
+    formats:
+      - tar.gz
+    # The binary must sit at the archive root.
+    wrap_in_directory: false
+    # Ship only the plugin binary — no README/LICENSE/CHANGELOG.
+    files:
+      - none*
+
+checksum:
+  name_template: checksums.txt
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-SNAPSHOT-{{ .ShortCommit }}"
+
+changelog:
+  use: git
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+
+release:
+  draft: false
+  prerelease: auto
