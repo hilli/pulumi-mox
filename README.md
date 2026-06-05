@@ -45,7 +45,7 @@ provider/
 internal/moxadmin/
   client.go                    sherpa HTTP client (session/cookie + CSRF)
 examples/yaml/
-  Pulumi.yaml                  Smoke example (mox:Domain + dnsRecords output)
+  Pulumi.yaml                  Smoke example (mox:Domain + mox:Account + outputs)
 Makefile                       build / install_plugin / gen_sdk / tidy / test
 ```
 
@@ -115,14 +115,20 @@ implemented; there is no Update (changes force a replace).
 ### `mox:Account` (fully wired)
 
 Inputs: `account`, `address`, optional `password` (`provider:"secret"`).
-Create is idempotent (adopts an existing account, then sets the password if one
-was given); Read enumerates accounts to detect drift; Update rotates the
-password via `SetPassword` and migrates the primary address via
-`AddressAdd`/`AddressRemove` without replacing the account; Delete calls
-`AccountRemove`. The `account` name is replace-only. **Password generation is the
-caller's responsibility** — the consuming program generates with
-`random.RandomPassword` and stores in a secret manager; the provider stays
-generation-agnostic.
+Outputs: `effectivePassword` (secret) — the password the account was created
+with. Create is idempotent (adopts an existing account); when a `password` is
+supplied it is applied via `SetPassword` and echoed into `effectivePassword`,
+and when none is supplied on a brand-new account the provider generates one
+(crypto/rand, 24-char alphanumeric) and surfaces it via `effectivePassword`.
+Adopting a pre-existing account never changes its password (and leaves
+`effectivePassword` empty). Read enumerates accounts to detect drift; Update
+rotates the password via `SetPassword` (refreshing `effectivePassword`) and
+migrates the primary address via `AddressAdd`/`AddressRemove` without replacing
+the account; Delete calls `AccountRemove`. The `account` name is replace-only.
+Retrieve a generated password with
+`pulumi stack output <name> --show-secrets`. Note mox stores passwords hashed,
+so `effectivePassword` only ever reflects a password the provider itself set — a
+password set out-of-band cannot be recovered.
 
 ### `mox:Address` (fully wired)
 
@@ -247,6 +253,41 @@ pulumi config set mox:adminUrl https://mox-admin.example.com
 pulumi config set --secret mox:adminPassword <password>
 pulumi up
 ```
+
+### Live e2e with `mox localserve`
+
+`make e2e` runs the `examples/yaml` stack against a throwaway, self-contained
+mox backend — no real server or config required. It:
+
+1. takes `mox` from `PATH`, or installs it with `go install github.com/mjl-/mox@latest`;
+2. starts an ephemeral `mox localserve` (admin API on `http://localhost:1080`,
+   password `moxadmin`) in a temp dir;
+3. stands up the stack against a throwaway `file://` Pulumi backend, runs
+   `pulumi up` (creating `example.com` plus a second `testuser@example.com`
+   account), prints the generated DNS records, the extra account's address, and
+   its provider-generated password, then `pulumi destroy`s and tears the whole
+   thing down.
+
+```sh
+make e2e
+```
+
+The `testuser` account omits a `password` input, so the provider generates one
+and exposes it as the `effectivePassword` secret output (surfaced as the
+`testUserPassword` stack output). It is redacted in normal Pulumi output;
+retrieve it with:
+
+```sh
+pulumi stack output testUserPassword --show-secrets
+```
+
+Env knobs (see `examples/yaml/e2e.sh`):
+
+- `MOX_E2E_REUSE=1` — reuse an already-running `localserve` on `:1080` instead
+  of starting (and stopping) one. The script never stops a `localserve` it did
+  not start. A pre-existing `example.com` makes `pulumi up` fail.
+- `MOX_E2E_KEEP=1` — leave the stack up and a self-started `localserve` running
+  for inspection (skips teardown); prints how to tear down manually.
 
 ## Open items
 

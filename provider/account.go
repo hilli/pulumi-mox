@@ -2,13 +2,35 @@ package provider
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
+	"math/big"
 	"reflect"
 
 	"github.com/pulumi/pulumi-go-provider/infer"
 
 	"github.com/hilli/pulumi-mox/internal/moxadmin"
 )
+
+// passwordCharset is the alphabet used for provider-generated passwords. It is
+// alphanumeric to stay compatible with mox's SetPassword (PRECIS OpaqueString)
+// validation.
+const passwordCharset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+
+// generatePassword returns a cryptographically random alphanumeric password of
+// the given length.
+func generatePassword(length int) (string, error) {
+	b := make([]byte, length)
+	max := big.NewInt(int64(len(passwordCharset)))
+	for i := range b {
+		n, err := rand.Int(rand.Reader, max)
+		if err != nil {
+			return "", err
+		}
+		b[i] = passwordCharset[n.Int64()]
+	}
+	return string(b), nil
+}
 
 // Account is a mox account. An account owns one or more email addresses and a
 // password used for IMAP/SMTP authentication.
@@ -70,6 +92,14 @@ type AccountRoute struct {
 // AccountState is the checkpointed output state.
 type AccountState struct {
 	AccountArgs
+	// EffectivePassword is the password the account was created with: either the
+	// password supplied via the password input, or — when none was supplied — a
+	// password the provider generated. It is a secret output so the credential can
+	// be propagated to whoever needs it (e.g. via `pulumi stack output
+	// effectivePassword --show-secrets`). mox stores passwords hashed, so this only
+	// ever reflects a password the provider itself set; a password set out-of-band
+	// cannot be recovered, and adopting a pre-existing account leaves it empty.
+	EffectivePassword string `pulumi:"effectivePassword" provider:"secret"`
 }
 
 // Annotate documents the resource and its fields.
@@ -80,7 +110,7 @@ func (a *Account) Annotate(an infer.Annotator) {
 func (a *AccountArgs) Annotate(an infer.Annotator) {
 	an.Describe(&a.Account, "Account name (mox's account identifier).")
 	an.Describe(&a.Address, "Initial email address for the account, e.g. \"user@example.com\".")
-	an.Describe(&a.Password, "Optional account password. When set, SetPassword is called. Generation is the caller's responsibility.")
+	an.Describe(&a.Password, "Optional account password. When set, it is applied via SetPassword. When omitted on a newly created account, the provider generates one and exposes it as the effectivePassword secret output.")
 	an.Describe(&a.MaxOutgoingMessagesPerDay, "Maximum messages the account may submit per day. Unset (or 0) uses mox's default.")
 	an.Describe(&a.MaxFirstTimeRecipientsPerDay, "Maximum new (first-time) recipients per day. Unset (or 0) uses mox's default.")
 	an.Describe(&a.MaxMessageSize, "Per-message size quota in bytes. Unset (or 0) uses the global default.")
@@ -201,7 +231,20 @@ func routesChanged(inputs, state []AccountRoute) bool {
 	return !reflect.DeepEqual(fromMoxRoutes(toMoxRoutes(inputs)), fromMoxRoutes(toMoxRoutes(state)))
 }
 
-// Create adds the account and, if a password was supplied, sets it.
+func (s *AccountState) Annotate(an infer.Annotator) {
+	an.Describe(&s.EffectivePassword, "The password the account was created with — the supplied password, or a provider-generated one when none was supplied. Secret output; empty when an existing account was adopted. mox stores passwords hashed, so a password set out-of-band cannot be recovered here.")
+}
+
+// WireDependencies marks the generated/echoed password as always secret so its
+// value is encrypted in state regardless of how it flows through the engine.
+func (a *Account) WireDependencies(f infer.FieldSelector, args *AccountArgs, state *AccountState) {
+	f.OutputField(&state.EffectivePassword).AlwaysSecret()
+}
+
+// Create adds the account and records the password it was created with. When a
+// password is supplied it is applied; when none is supplied and the account is
+// brand-new, the provider generates one. An adopted (pre-existing) account is
+// never re-passworded.
 func (a *Account) Create(ctx context.Context, req infer.CreateRequest[AccountArgs]) (infer.CreateResponse[AccountState], error) {
 	state := AccountState{AccountArgs: req.Inputs}
 
@@ -214,14 +257,36 @@ func (a *Account) Create(ctx context.Context, req infer.CreateRequest[AccountArg
 		return infer.CreateResponse[AccountState]{}, err
 	}
 
-	if err := client.AccountAdd(ctx, req.Inputs.Account, req.Inputs.Address); err != nil && !moxadmin.IsAlreadyExists(err) {
-		return infer.CreateResponse[AccountState]{}, fmt.Errorf("adding account %q: %w", req.Inputs.Account, err)
+	adopted := false
+	if err := client.AccountAdd(ctx, req.Inputs.Account, req.Inputs.Address); err != nil {
+		if moxadmin.IsAlreadyExists(err) {
+			adopted = true
+		} else {
+			return infer.CreateResponse[AccountState]{}, fmt.Errorf("adding account %q: %w", req.Inputs.Account, err)
+		}
 	}
 
-	if req.Inputs.Password != nil && *req.Inputs.Password != "" {
+	supplied := req.Inputs.Password != nil && *req.Inputs.Password != ""
+	switch {
+	case supplied:
 		if err := client.SetPassword(ctx, req.Inputs.Account, *req.Inputs.Password); err != nil {
 			return infer.CreateResponse[AccountState]{}, fmt.Errorf("setting password for account %q: %w", req.Inputs.Account, err)
 		}
+		state.EffectivePassword = *req.Inputs.Password
+	case !adopted:
+		// Brand-new account without a supplied password: generate one so the
+		// account is usable and the credential can be propagated as an output.
+		gen, err := generatePassword(24)
+		if err != nil {
+			return infer.CreateResponse[AccountState]{}, fmt.Errorf("generating password for account %q: %w", req.Inputs.Account, err)
+		}
+		if err := client.SetPassword(ctx, req.Inputs.Account, gen); err != nil {
+			return infer.CreateResponse[AccountState]{}, fmt.Errorf("setting generated password for account %q: %w", req.Inputs.Account, err)
+		}
+		state.EffectivePassword = gen
+	default:
+		// Adopted an existing account and no password was supplied: leave its
+		// password untouched (regenerating would clobber the real credential).
 	}
 
 	if err := applyAccountSettings(ctx, client, req.Inputs.Account, req.Inputs); err != nil {
@@ -312,6 +377,8 @@ func (a *Account) Read(ctx context.Context, req infer.ReadRequest[AccountArgs, A
 	}
 
 	state := AccountState{AccountArgs: inputs}
+	// mox stores passwords hashed; carry the recorded value forward unchanged.
+	state.EffectivePassword = req.State.EffectivePassword
 	return infer.ReadResponse[AccountArgs, AccountState]{ID: req.ID, Inputs: inputs, State: state}, nil
 }
 
@@ -320,6 +387,8 @@ func (a *Account) Read(ctx context.Context, req infer.ReadRequest[AccountArgs, A
 // (AddressAdd new, then AddressRemove old). It is a no-op during a dry run.
 func (a *Account) Update(ctx context.Context, req infer.UpdateRequest[AccountArgs, AccountState]) (infer.UpdateResponse[AccountState], error) {
 	state := AccountState{AccountArgs: req.Inputs}
+	// Preserve the recorded password by default; only an explicit rotation changes it.
+	state.EffectivePassword = req.State.EffectivePassword
 
 	if req.DryRun {
 		return infer.UpdateResponse[AccountState]{Output: state}, nil
@@ -351,6 +420,7 @@ func (a *Account) Update(ctx context.Context, req infer.UpdateRequest[AccountArg
 			if err := client.SetPassword(ctx, req.State.Account, *req.Inputs.Password); err != nil {
 				return infer.UpdateResponse[AccountState]{}, fmt.Errorf("setting password for account %q: %w", req.State.Account, err)
 			}
+			state.EffectivePassword = *req.Inputs.Password
 		}
 	}
 

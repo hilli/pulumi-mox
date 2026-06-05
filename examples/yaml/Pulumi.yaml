@@ -2,13 +2,10 @@ name: mox-example
 runtime: yaml
 description: Smoke example for the native mox provider.
 
-config:
-  mox:adminUrl:
-    type: string
-    default: https://mox-admin.example.com
-  # Set the admin password via:
-  #   pulumi config set --secret mox:adminPassword <password>
-  # or the MOX_ADMIN_PASSWORD environment variable.
+# Provider config is set on the stack, not declared here:
+#   pulumi config set mox:adminUrl https://mox-admin.example.com
+#   pulumi config set --secret mox:adminPassword <password>
+# (or via the MOX_ADMIN_URL / MOX_ADMIN_PASSWORD environment variables).
 
 resources:
   example:
@@ -17,7 +14,36 @@ resources:
       domain: example.com
       # account defaults to the domain name; localpart defaults to "postmaster".
 
+  # A second account on the domain, beyond the postmaster account that adding the
+  # domain creates. Referencing ${example.domain} makes Pulumi create this account
+  # after the domain (and, on destroy, tear it down before the domain).
+  testuser:
+    type: mox:Account
+    properties:
+      account: testuser
+      address: testuser@${example.domain}
+      # No password supplied: the provider generates one on create and exposes
+      # it as the effectivePassword secret output (see testUserPassword below).
+      # To set your own instead, add `password: <value>` here.
+  # testuserAlias:
+  #   type: mox:Alias
+  #   properties:
+  #     domain: ${example.domain}
+  #     source: testuser@${example.domain}
+  #     destination: testalias@${example.domain}
+  testuser2:
+    type: mox:Account
+    properties:
+      account: testuser2
+      address: testuser2@${example.domain}
+      password: mysecretpassword
+
 outputs:
   # The mox-generated zone-file lines (MX, SPF, DKIM, DMARC, ...). Feed these
   # into your DNS provider (e.g. Cloudflare).
   dnsRecords: ${example.dnsRecords}
+  # The address of the extra account created above.
+  testUserAddress: ${testuser.address}
+  # The generated account password (secret). Retrieve with:
+  #   pulumi stack output testUserPassword --show-secrets
+  testUserPassword: ${testuser.effectivePassword}

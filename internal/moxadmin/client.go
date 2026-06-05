@@ -101,6 +101,18 @@ func IsAlreadyExists(err error) bool {
 	return strings.Contains(strings.ToLower(me.Msg), "already")
 }
 
+// IsNotFound reports whether err is a sherpa user error indicating the object
+// the caller referenced does not exist. mox phrases these as "... does not
+// exist(s)" user errors (e.g. AddressRemove, DomainRemove), so teardown can
+// treat them as already-gone and stay idempotent across retries.
+func IsNotFound(err error) bool {
+	var me *Error
+	if !errors.As(err, &me) || !me.IsUserError() {
+		return false
+	}
+	return strings.Contains(strings.ToLower(me.Msg), "does not exist")
+}
+
 // IsUserError reports whether err wraps a sherpa "user:" error. It is the
 // package-level counterpart to (*Error).IsUserError, letting callers classify
 // an error value (e.g. to treat a missing object during Read as drift rather

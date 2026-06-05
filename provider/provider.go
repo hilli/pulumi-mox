@@ -11,6 +11,7 @@ import (
 
 	p "github.com/pulumi/pulumi-go-provider"
 	"github.com/pulumi/pulumi-go-provider/infer"
+	"github.com/pulumi/pulumi/sdk/v3/go/common/tokens"
 
 	"github.com/hilli/pulumi-mox/internal/moxadmin"
 )
@@ -93,6 +94,9 @@ func Provider() (p.Provider, error) {
 		WithDisplayName("mox").
 		WithDescription("Manage mox mail server domains, accounts and addresses via the admin API.").
 		WithConfig(infer.Config(&Config{})).
+		WithModuleMap(map[tokens.ModuleName]tokens.ModuleName{
+			"provider": "index",
+		}).
 		WithResources(
 			infer.Resource(&Domain{}),
 			infer.Resource(&Account{}),

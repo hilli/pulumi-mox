@@ -148,14 +148,50 @@ func (d *Domain) Read(ctx context.Context, req infer.ReadRequest[DomainArgs, Dom
 	return infer.ReadResponse[DomainArgs, DomainState]{ID: id, Inputs: inputs, State: state}, nil
 }
 
-// Delete removes the domain.
+// Delete removes the domain and the account mox auto-created alongside it.
+//
+// mox's DomainAdd (new-account path) creates a mutual reference: the account
+// gets an explicit destination (localpart@domain) that lives ON this domain,
+// while the domain config points its DMARC and TLSRPT reporting at that same
+// account. mox re-validates the whole config on every change and never
+// cascades, so neither object can be removed while the other still references
+// it. We break the cycle in three steps:
+//
+//  1. AddressRemove(localpart@domain) drops the account's only explicit
+//     destination. The account still exists (so the domain's DMARC/TLSRPT
+//     refs stay valid) and the domain still exists (so the address's domain
+//     is still known).
+//  2. DomainRemove drops the domain and, with it, its DMARC/TLSRPT account
+//     references. The now destination-less account is unreferenced.
+//  3. AccountRemove deletes the empty account.
+//
+// Steps 1 and 2 tolerate a "does not exist" error and step 3 is guarded by
+// AccountExists, so a retried Delete after a partial failure still converges.
 func (d *Domain) Delete(ctx context.Context, req infer.DeleteRequest[DomainState]) (infer.DeleteResponse, error) {
 	client, err := clientFromContext(ctx)
 	if err != nil {
 		return infer.DeleteResponse{}, err
 	}
-	if err := client.DomainRemove(ctx, req.ID); err != nil {
+
+	account, localpart, _ := resolveDomainInputs(req.State.DomainArgs)
+
+	address := localpart + "@" + req.ID
+	if err := client.AddressRemove(ctx, address); err != nil && !moxadmin.IsNotFound(err) {
+		return infer.DeleteResponse{}, fmt.Errorf("removing address %q for domain %q: %w", address, req.ID, err)
+	}
+
+	if err := client.DomainRemove(ctx, req.ID); err != nil && !moxadmin.IsNotFound(err) {
 		return infer.DeleteResponse{}, fmt.Errorf("removing domain %q: %w", req.ID, err)
+	}
+
+	exists, err := client.AccountExists(ctx, account)
+	if err != nil {
+		return infer.DeleteResponse{}, fmt.Errorf("checking account %q for domain %q: %w", account, req.ID, err)
+	}
+	if exists {
+		if err := client.AccountRemove(ctx, account); err != nil {
+			return infer.DeleteResponse{}, fmt.Errorf("removing account %q for domain %q: %w", account, req.ID, err)
+		}
 	}
 	return infer.DeleteResponse{}, nil
 }
