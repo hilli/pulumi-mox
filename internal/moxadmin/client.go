@@ -342,12 +342,35 @@ func (c *Client) SetPassword(ctx context.Context, accountName, password string) 
 }
 
 // Account mirrors the subset of mox's config.Account that the provider reads
-// back. The full mox struct has many more fields (full name, quota, routes,
-// aliases, ...); unknown JSON keys are ignored. Destinations is keyed by the
-// account's configured email addresses (a key without a localpart, e.g.
-// "@example.com", is a catchall).
+// back. The full mox struct has many more fields; unknown JSON keys are ignored.
+// Destinations is keyed by the account's configured email addresses (a key
+// without a localpart, e.g. "@example.com", is a catchall).
 type Account struct {
 	Destinations map[string]json.RawMessage `json:"Destinations"`
+	// LoginDisabled is the rejection message shown when login is disabled. An
+	// empty string means login is enabled.
+	LoginDisabled string `json:"LoginDisabled"`
+	// QuotaMessageSize is the per-message size quota in bytes (0 = global default).
+	QuotaMessageSize int64 `json:"QuotaMessageSize"`
+	// MaxOutgoingMessagesPerDay caps submitted messages per day (0 = mox default).
+	MaxOutgoingMessagesPerDay int `json:"MaxOutgoingMessagesPerDay"`
+	// MaxFirstTimeRecipientsPerDay caps new recipients per day (0 = mox default).
+	MaxFirstTimeRecipientsPerDay int `json:"MaxFirstTimeRecipientsPerDay"`
+	// NoFirstTimeSenderDelay disables the first-time-sender delay when true.
+	NoFirstTimeSenderDelay bool `json:"NoFirstTimeSenderDelay"`
+	// NoCustomPassword forbids the account from setting its own password.
+	NoCustomPassword bool `json:"NoCustomPassword"`
+	// Routes are the per-account outgoing routing rules.
+	Routes []Route `json:"Routes"`
+}
+
+// Route mirrors mox's config.Route, a per-account (or global) outgoing routing
+// rule. The internal *ASCII/resolved fields are sconf:"-" in mox and not sent.
+type Route struct {
+	FromDomain      []string `json:"FromDomain,omitempty"`
+	ToDomain        []string `json:"ToDomain,omitempty"`
+	MinimumAttempts int      `json:"MinimumAttempts,omitempty"`
+	Transport       string   `json:"Transport"`
 }
 
 // Addresses returns the email addresses configured on the account, derived from
@@ -441,4 +464,106 @@ func (c *Client) AccountExists(ctx context.Context, name string) (bool, error) {
 		}
 	}
 	return false, nil
+}
+
+// AccountSettingsSave writes the account's message-limit and password-policy
+// settings. mox persists these five fields together (an all-or-nothing setter),
+// so callers should read the current values and merge in only the fields they
+// intend to change. firstTimeSenderDelay is the externally meaningful sense of
+// mox's stored NoFirstTimeSenderDelay (the value mox saves is
+// !firstTimeSenderDelay): true means the first-time-sender delay is applied.
+func (c *Client) AccountSettingsSave(ctx context.Context, accountName string, maxOutgoingMessagesPerDay, maxFirstTimeRecipientsPerDay int, maxMessageSize int64, firstTimeSenderDelay, noCustomPassword bool) error {
+	return c.Call(ctx, "AccountSettingsSave", []any{accountName, maxOutgoingMessagesPerDay, maxFirstTimeRecipientsPerDay, maxMessageSize, firstTimeSenderDelay, noCustomPassword}, nil)
+}
+
+// AccountLoginDisabledSave sets the account's login-disabled rejection message.
+// An empty string enables login; a non-empty string disables it and is shown as
+// the rejection reason to clients.
+func (c *Client) AccountLoginDisabledSave(ctx context.Context, accountName, loginDisabled string) error {
+	return c.Call(ctx, "AccountLoginDisabledSave", []any{accountName, loginDisabled}, nil)
+}
+
+// AccountRoutesSave replaces the account's outgoing routing rules. A nil/empty
+// slice clears the account's routes.
+func (c *Client) AccountRoutesSave(ctx context.Context, accountName string, routes []Route) error {
+	if routes == nil {
+		routes = []Route{}
+	}
+	return c.Call(ctx, "AccountRoutesSave", []any{accountName, routes}, nil)
+}
+
+// Alias mirrors the subset of mox's config.Alias the provider reads and writes.
+// The full mox struct carries additional read-only fields (parsed addresses,
+// localpart string, domain); unknown JSON keys are ignored on read and the
+// read-only fields are left zero on write.
+type Alias struct {
+	// Addresses are the member account addresses that receive mail for the alias.
+	Addresses []string `json:"Addresses"`
+	// PostPublic allows anyone (not just members) to send to the alias.
+	PostPublic bool `json:"PostPublic"`
+	// ListMembers allows members to see the membership list.
+	ListMembers bool `json:"ListMembers"`
+	// AllowMsgFrom allows messages to use the alias address in the From header.
+	AllowMsgFrom bool `json:"AllowMsgFrom"`
+}
+
+// DomainConfig mirrors the subset of mox's config.Domain returned by the sherpa
+// DomainConfig method. Aliases is keyed by the alias localpart (the part before
+// "@"). Unknown JSON keys are ignored.
+type DomainConfig struct {
+	Aliases map[string]Alias `json:"Aliases"`
+}
+
+// Alias returns the alias with the given localpart, matching case-insensitively,
+// and whether it was found.
+func (d DomainConfig) Alias(localpart string) (Alias, bool) {
+	if a, ok := d.Aliases[localpart]; ok {
+		return a, true
+	}
+	for lp, a := range d.Aliases {
+		if strings.EqualFold(lp, localpart) {
+			return a, true
+		}
+	}
+	return Alias{}, false
+}
+
+// DomainConfig returns the configuration for a single domain, including its
+// aliases. Unlike Domains/Account, the sherpa DomainConfig method returns a
+// single value (not array-wrapped).
+func (c *Client) DomainConfig(ctx context.Context, domain string) (DomainConfig, error) {
+	var dc DomainConfig
+	if err := c.Call(ctx, "DomainConfig", []any{domain}, &dc); err != nil {
+		return DomainConfig{}, err
+	}
+	return dc, nil
+}
+
+// AliasAdd creates an alias for the given localpart and domain.
+func (c *Client) AliasAdd(ctx context.Context, localpart, domain string, alias Alias) error {
+	if alias.Addresses == nil {
+		alias.Addresses = []string{}
+	}
+	return c.Call(ctx, "AliasAdd", []any{localpart, domain, alias}, nil)
+}
+
+// AliasUpdate sets the alias's three boolean settings together (mox writes them
+// atomically).
+func (c *Client) AliasUpdate(ctx context.Context, localpart, domain string, postPublic, listMembers, allowMsgFrom bool) error {
+	return c.Call(ctx, "AliasUpdate", []any{localpart, domain, postPublic, listMembers, allowMsgFrom}, nil)
+}
+
+// AliasRemove deletes the alias.
+func (c *Client) AliasRemove(ctx context.Context, localpart, domain string) error {
+	return c.Call(ctx, "AliasRemove", []any{localpart, domain}, nil)
+}
+
+// AliasAddressesAdd adds member addresses to the alias.
+func (c *Client) AliasAddressesAdd(ctx context.Context, localpart, domain string, addresses []string) error {
+	return c.Call(ctx, "AliasAddressesAdd", []any{localpart, domain, addresses}, nil)
+}
+
+// AliasAddressesRemove removes member addresses from the alias.
+func (c *Client) AliasAddressesRemove(ctx context.Context, localpart, domain string, addresses []string) error {
+	return c.Call(ctx, "AliasAddressesRemove", []any{localpart, domain, addresses}, nil)
 }

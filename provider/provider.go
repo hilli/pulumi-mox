@@ -97,6 +97,7 @@ func Provider() (p.Provider, error) {
 			infer.Resource(&Domain{}),
 			infer.Resource(&Account{}),
 			infer.Resource(&Address{}),
+			infer.Resource(&Alias{}),
 		).
 		Build()
 }
