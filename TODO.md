@@ -24,25 +24,25 @@ These configure an existing account, so they map cleanly onto extra optional
 input properties on the current `mox:Account` resource (set on Create, diff on
 Update). No new resource type needed.
 
-- [ ] `AccountSettingsSave(accountName, maxOutgoingMessagesPerDay,
+- [x] `AccountSettingsSave(accountName, maxOutgoingMessagesPerDay,
       maxFirstTimeRecipientsPerDay, maxMsgSize, firstTimeSenderDelay,
       noCustomPassword)` — quotas / rate limits / max message size.
-- [ ] `AccountLoginDisabledSave(accountName, loginDisabled)` — disable login
+- [x] `AccountLoginDisabledSave(accountName, loginDisabled)` — disable login
       while keeping the account (expose as `loginDisabled bool`).
-- [ ] `AccountRoutesSave(accountName, routes)` — per-account routing rules.
+- [x] `AccountRoutesSave(accountName, routes)` — per-account routing rules.
 
 ## 2. New `mox:Alias` resource (aliases / mailing lists)
 
 mox aliases (localpart that fans out to multiple account members) are a distinct
 object with their own lifecycle — best modelled as a new resource type.
 
-- [ ] `AliasAdd(aliaslp, domainName, alias)` — Create.
-- [ ] `AliasUpdate(aliaslp, domainName, postPublic, listMembers, allowMsgFrom)` —
+- [x] `AliasAdd(aliaslp, domainName, alias)` — Create.
+- [x] `AliasUpdate(aliaslp, domainName, postPublic, listMembers, allowMsgFrom)` —
       Update list behaviour.
-- [ ] `AliasRemove(aliaslp, domainName)` — Delete.
-- [ ] `AliasAddressesAdd` / `AliasAddressesRemove` — manage member addresses
+- [x] `AliasRemove(aliaslp, domainName)` — Delete.
+- [x] `AliasAddressesAdd` / `AliasAddressesRemove` — manage member addresses
       (could be sub-fields of `mox:Alias` or a child resource).
-- [ ] Read side: `Aliases` / `Alias` for drift detection.
+- [x] Read side: `Aliases` / `Alias` for drift detection.
 
 ## 3. Expand `mox:Domain` config (or split into child resources)
 
