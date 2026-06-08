@@ -14,7 +14,24 @@ Domains: `DomainAdd`, `DomainRemove`, `Domains`, `DomainRecords`.
 Accounts: `AccountAdd`, `AccountRemove`, `Accounts`, `Account`, `SetPassword`.
 Addresses: `AddressAdd`, `AddressRemove`.
 
-Resources today: `mox:Domain`, `mox:Account`, `mox:Address` (all full CRUD).
+Resources today: `mox:Domain`, `mox:Account`, `mox:Address`, `mox:Alias`,
+`mox:Sieve` (all full CRUD).
+
+---
+
+## Account Sieve scripts — `mox:Sieve` resource
+
+mox stores per-account Sieve scripts (used, e.g., for `redirect`-based
+forwarding) with a single active script per account. Modelled as a dedicated
+`mox:Sieve` resource (account + name + content + active).
+
+- [x] `AccountSievePutScript(accountName, name, content)` — Create/Update.
+- [x] `AccountSieveScripts(accountName)` / `AccountSieveScript(accountName, name)`
+      — Read + drift detection.
+- [x] `AccountSieveSetActive(accountName, name)` — activate (empty name
+      deactivates), exposed as the `active` field.
+- [x] `AccountSieveDeleteScript(accountName, name)` — Delete (deactivates first).
+- [ ] `AccountSieveRenameScript` — not wrapped; name changes force a replacement.
 
 ---
 

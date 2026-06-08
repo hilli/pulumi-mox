@@ -29,6 +29,8 @@ func (m *module) Construct(ctx *pulumi.Context, name, typ, urn string) (r pulumi
 		r = &Alias{}
 	case "mox:index:Domain":
 		r = &Domain{}
+	case "mox:index:Sieve":
+		r = &Sieve{}
 	default:
 		return nil, fmt.Errorf("unknown resource type: %s", typ)
 	}

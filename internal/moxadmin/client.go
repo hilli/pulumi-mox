@@ -676,3 +676,84 @@ func (c *Client) AliasAddressesAdd(ctx context.Context, localpart, domain string
 func (c *Client) AliasAddressesRemove(ctx context.Context, localpart, domain string, addresses []string) error {
 	return c.Call(ctx, "AliasAddressesRemove", []any{localpart, domain, addresses}, nil)
 }
+
+// SieveScript mirrors the metadata of a stored Sieve script as returned by
+// AccountSieveScripts. The script content is fetched separately with
+// AccountSieveScript (the list omits it to stay cheap).
+type SieveScript struct {
+	Name   string `json:"Name"`
+	Size   int64  `json:"Size"`
+	Active bool   `json:"Active"`
+}
+
+// AccountSieveScripts lists an account's Sieve scripts and the name of the
+// active one (empty when none is active). The sherpa method returns two values,
+// encoded on the wire as a two-element JSON array.
+func (c *Client) AccountSieveScripts(ctx context.Context, accountName string) ([]SieveScript, string, error) {
+	var arr [2]json.RawMessage
+	if err := c.Call(ctx, "AccountSieveScripts", []any{accountName}, &arr); err != nil {
+		return nil, "", err
+	}
+	var scripts []SieveScript
+	var active string
+	if len(arr[0]) > 0 {
+		if err := json.Unmarshal(arr[0], &scripts); err != nil {
+			return nil, "", fmt.Errorf("decoding AccountSieveScripts result: %w", err)
+		}
+	}
+	if len(arr[1]) > 0 {
+		if err := json.Unmarshal(arr[1], &active); err != nil {
+			return nil, "", fmt.Errorf("decoding AccountSieveScripts result: %w", err)
+		}
+	}
+	return scripts, active, nil
+}
+
+// SieveScriptExists reports whether the account has a Sieve script with the
+// given name, and whether it is the active script. It is built on
+// AccountSieveScripts so callers can stay idempotent without relying on the
+// admin API's error phrasing.
+func (c *Client) SieveScriptExists(ctx context.Context, accountName, name string) (exists, active bool, err error) {
+	scripts, activeName, err := c.AccountSieveScripts(ctx, accountName)
+	if err != nil {
+		return false, false, err
+	}
+	for _, s := range scripts {
+		if s.Name == name {
+			return true, name == activeName, nil
+		}
+	}
+	return false, false, nil
+}
+
+// AccountSieveScript returns the content of a named Sieve script.
+func (c *Client) AccountSieveScript(ctx context.Context, accountName, name string) (string, error) {
+	var content string
+	if err := c.Call(ctx, "AccountSieveScript", []any{accountName, name}, &content); err != nil {
+		return "", err
+	}
+	return content, nil
+}
+
+// AccountSievePutScript stores (creates or replaces) a Sieve script for an
+// account and returns any validation warnings. mox validates the script and
+// checks it against the account's Sieve quota before storing it.
+func (c *Client) AccountSievePutScript(ctx context.Context, accountName, name, content string) (string, error) {
+	var warnings string
+	if err := c.Call(ctx, "AccountSievePutScript", []any{accountName, name, content}, &warnings); err != nil {
+		return "", err
+	}
+	return warnings, nil
+}
+
+// AccountSieveDeleteScript deletes a named Sieve script. The active script
+// cannot be deleted; deactivate it first with AccountSieveSetActive(name="").
+func (c *Client) AccountSieveDeleteScript(ctx context.Context, accountName, name string) error {
+	return c.Call(ctx, "AccountSieveDeleteScript", []any{accountName, name}, nil)
+}
+
+// AccountSieveSetActive sets the active Sieve script for an account. Passing an
+// empty name deactivates whatever script is currently active.
+func (c *Client) AccountSieveSetActive(ctx context.Context, accountName, name string) error {
+	return c.Call(ctx, "AccountSieveSetActive", []any{accountName, name}, nil)
+}

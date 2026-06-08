@@ -18,7 +18,7 @@ import (
 
 // Version is the provider/plugin version. It is overridden at build time via
 // -ldflags "-X github.com/hilli/pulumi-mox/provider.Version=x.y.z".
-var Version = "0.1.0"
+var Version = "0.2.0"
 
 // Config holds the provider-level configuration. Values come from the Pulumi
 // stack config (mox:adminUrl, mox:adminPassword, mox:insecureSkipVerify) with
@@ -107,6 +107,7 @@ func Provider() (p.Provider, error) {
 			infer.Resource(&Account{}),
 			infer.Resource(&Address{}),
 			infer.Resource(&Alias{}),
+			infer.Resource(&Sieve{}),
 		).
 		WithFunctions(
 			infer.Function(&GetVersion{}),

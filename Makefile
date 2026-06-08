@@ -21,12 +21,12 @@ install_plugin: build
 # The Go SDK (sdk/go) is committed; all other languages stay gitignored and are
 # meant for ad-hoc inspection only — consumers generate them via `pulumi package add`.
 gen_sdk: build
-	pulumi package gen-sdk $(BIN)
+	pulumi package gen-sdk ./$(BIN)
 
 # Regenerate ONLY the committed Go SDK at the current VERSION, into sdk/go.
 # Run this whenever the schema changes, then commit the result.
 gen_go_sdk: build
-	pulumi package gen-sdk $(BIN) --language go --version $(VERSION) -o sdk
+	pulumi package gen-sdk ./$(BIN) --language go --version $(VERSION) -o sdk
 
 # Tidy and compile the committed Go SDK module (separate go.mod under sdk/go).
 sdk_build:
