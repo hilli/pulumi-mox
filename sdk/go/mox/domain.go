@@ -24,6 +24,8 @@ type Domain struct {
 	Description pulumi.StringPtrOutput `pulumi:"description"`
 	// Whether the domain is administratively disabled in mox.
 	Disabled pulumi.BoolPtrOutput `pulumi:"disabled"`
+	// DKIM public-key TXT records (one per selector), parsed from DnsRecords for programmatic DNS provisioning. Record name is "<selector>._domainkey.<domain>".
+	DkimRecords DkimDNSRecordArrayOutput `pulumi:"dkimRecords"`
 	// DMARC aggregate-report destination. Removing a previously-set block clears it.
 	Dmarc DomainReportAddressPtrOutput `pulumi:"dmarc"`
 	// Zone-file lines mox expects to exist for this domain (MX, SPF, DKIM, DMARC, ...).
@@ -246,6 +248,11 @@ func (o DomainOutput) Description() pulumi.StringPtrOutput {
 // Whether the domain is administratively disabled in mox.
 func (o DomainOutput) Disabled() pulumi.BoolPtrOutput {
 	return o.ApplyT(func(v *Domain) pulumi.BoolPtrOutput { return v.Disabled }).(pulumi.BoolPtrOutput)
+}
+
+// DKIM public-key TXT records (one per selector), parsed from DnsRecords for programmatic DNS provisioning. Record name is "<selector>._domainkey.<domain>".
+func (o DomainOutput) DkimRecords() DkimDNSRecordArrayOutput {
+	return o.ApplyT(func(v *Domain) DkimDNSRecordArrayOutput { return v.DkimRecords }).(DkimDNSRecordArrayOutput)
 }
 
 // DMARC aggregate-report destination. Removing a previously-set block clears it.

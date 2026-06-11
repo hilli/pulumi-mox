@@ -125,6 +125,57 @@ func (o AccountRouteArrayOutput) Index(i pulumi.IntInput) AccountRouteOutput {
 	}).(AccountRouteOutput)
 }
 
+type DkimDNSRecord struct {
+	// DKIM selector (the label before "._domainkey").
+	Selector string `pulumi:"selector"`
+	// Full DKIM TXT record value, e.g. "v=DKIM1;h=sha256;p=...".
+	Txt string `pulumi:"txt"`
+}
+
+type DkimDNSRecordOutput struct{ *pulumi.OutputState }
+
+func (DkimDNSRecordOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((*DkimDNSRecord)(nil)).Elem()
+}
+
+func (o DkimDNSRecordOutput) ToDkimDNSRecordOutput() DkimDNSRecordOutput {
+	return o
+}
+
+func (o DkimDNSRecordOutput) ToDkimDNSRecordOutputWithContext(ctx context.Context) DkimDNSRecordOutput {
+	return o
+}
+
+// DKIM selector (the label before "._domainkey").
+func (o DkimDNSRecordOutput) Selector() pulumi.StringOutput {
+	return o.ApplyT(func(v DkimDNSRecord) string { return v.Selector }).(pulumi.StringOutput)
+}
+
+// Full DKIM TXT record value, e.g. "v=DKIM1;h=sha256;p=...".
+func (o DkimDNSRecordOutput) Txt() pulumi.StringOutput {
+	return o.ApplyT(func(v DkimDNSRecord) string { return v.Txt }).(pulumi.StringOutput)
+}
+
+type DkimDNSRecordArrayOutput struct{ *pulumi.OutputState }
+
+func (DkimDNSRecordArrayOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((*[]DkimDNSRecord)(nil)).Elem()
+}
+
+func (o DkimDNSRecordArrayOutput) ToDkimDNSRecordArrayOutput() DkimDNSRecordArrayOutput {
+	return o
+}
+
+func (o DkimDNSRecordArrayOutput) ToDkimDNSRecordArrayOutputWithContext(ctx context.Context) DkimDNSRecordArrayOutput {
+	return o
+}
+
+func (o DkimDNSRecordArrayOutput) Index(i pulumi.IntInput) DkimDNSRecordOutput {
+	return pulumi.All(o, i).ApplyT(func(vs []interface{}) DkimDNSRecord {
+		return vs[0].([]DkimDNSRecord)[vs[1].(int)]
+	}).(DkimDNSRecordOutput)
+}
+
 type DomainLocalpartConfig struct {
 	// Whether localparts are case-sensitive.
 	CaseSensitive *bool `pulumi:"caseSensitive"`
@@ -680,6 +731,8 @@ func init() {
 	pulumi.RegisterInputType(reflect.TypeOf((*DomainReportAddressPtrInput)(nil)).Elem(), DomainReportAddressArgs{})
 	pulumi.RegisterOutputType(AccountRouteOutput{})
 	pulumi.RegisterOutputType(AccountRouteArrayOutput{})
+	pulumi.RegisterOutputType(DkimDNSRecordOutput{})
+	pulumi.RegisterOutputType(DkimDNSRecordArrayOutput{})
 	pulumi.RegisterOutputType(DomainLocalpartConfigOutput{})
 	pulumi.RegisterOutputType(DomainLocalpartConfigPtrOutput{})
 	pulumi.RegisterOutputType(DomainMtaStsOutput{})

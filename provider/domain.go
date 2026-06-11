@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"regexp"
 	"strings"
 	"time"
 
@@ -91,6 +92,18 @@ type DomainLocalpartConfig struct {
 	CaseSensitive bool `pulumi:"caseSensitive,optional"`
 }
 
+// DkimDNSRecord is a single DKIM public-key DNS TXT record mox expects to be
+// published for the domain, parsed from the zone-file output into a structured
+// form for programmatic DNS provisioning. The full record name is
+// "<Selector>._domainkey.<domain>"; Txt is the record value with any zone-file
+// string chunks already joined into one string.
+type DkimDNSRecord struct {
+	// Selector is the DKIM selector (the label before "._domainkey").
+	Selector string `pulumi:"selector"`
+	// Txt is the full DKIM TXT value, e.g. "v=DKIM1;h=sha256;p=...".
+	Txt string `pulumi:"txt"`
+}
+
 // DomainState is the checkpointed output state.
 type DomainState struct {
 	DomainArgs
@@ -98,6 +111,44 @@ type DomainState struct {
 	// (MX, SPF, DKIM, DMARC, MTA-STS, TLSRPT, ...). Only complete after the
 	// domain has been added (DKIM keys are generated on add).
 	DnsRecords []string `pulumi:"dnsRecords"`
+	// DkimRecords are the DKIM public-key TXT records (one per configured
+	// selector), parsed from DnsRecords into a structured form so callers can
+	// create them at their DNS provider without parsing zone-file text. The DKIM
+	// public key is the only mox-generated (non-templatable) value, so this is
+	// the primary output for automated DNS provisioning.
+	DkimRecords []DkimDNSRecord `pulumi:"dkimRecords"`
+}
+
+// dkimRecordNameRe matches the start of a DKIM zone-file record element,
+// capturing the selector label, e.g. "2026a._domainkey.example.com.   TXT ...".
+var dkimRecordNameRe = regexp.MustCompile(`^\s*([^.\s]+)\._domainkey\.\S+\s+TXT\b`)
+
+// dkimQuotedRe matches each quoted string chunk in a TXT record; long DKIM
+// records are split into several quoted chunks within parentheses.
+var dkimQuotedRe = regexp.MustCompile(`"([^"]*)"`)
+
+// parseDkimRecords extracts the DKIM public-key TXT records from mox's zone-file
+// output. Each "_domainkey" element is one logical record whose value may be
+// split across several quoted chunks (joined here). Non-DKIM lines and the
+// explanatory "; NOTE:" comment lines are ignored.
+func parseDkimRecords(records []string) []DkimDNSRecord {
+	var out []DkimDNSRecord
+	for _, rec := range records {
+		m := dkimRecordNameRe.FindStringSubmatch(rec)
+		if m == nil {
+			continue
+		}
+		var b strings.Builder
+		for _, q := range dkimQuotedRe.FindAllStringSubmatch(rec, -1) {
+			b.WriteString(q[1])
+		}
+		txt := b.String()
+		if txt == "" {
+			continue
+		}
+		out = append(out, DkimDNSRecord{Selector: m[1], Txt: txt})
+	}
+	return out
 }
 
 // Annotate documents the resource and its fields.
@@ -140,6 +191,12 @@ func (l *DomainLocalpartConfig) Annotate(an infer.Annotator) {
 
 func (s *DomainState) Annotate(an infer.Annotator) {
 	an.Describe(&s.DnsRecords, "Zone-file lines mox expects to exist for this domain (MX, SPF, DKIM, DMARC, ...).")
+	an.Describe(&s.DkimRecords, "DKIM public-key TXT records (one per selector), parsed from DnsRecords for programmatic DNS provisioning. Record name is \"<selector>._domainkey.<domain>\".")
+}
+
+func (r *DkimDNSRecord) Annotate(an infer.Annotator) {
+	an.Describe(&r.Selector, "DKIM selector (the label before \"._domainkey\").")
+	an.Describe(&r.Txt, "Full DKIM TXT record value, e.g. \"v=DKIM1;h=sha256;p=...\".")
 }
 
 // resolveDomainInputs applies the documented defaults.
@@ -400,6 +457,7 @@ func (d *Domain) Create(ctx context.Context, req infer.CreateRequest[DomainArgs]
 		return infer.CreateResponse[DomainState]{}, fmt.Errorf("reading DNS records for domain %q: %w", req.Inputs.Domain, err)
 	}
 	state.DnsRecords = records
+	state.DkimRecords = parseDkimRecords(records)
 
 	return infer.CreateResponse[DomainState]{ID: req.Inputs.Domain, Output: state}, nil
 }
@@ -455,7 +513,7 @@ func (d *Domain) Read(ctx context.Context, req infer.ReadRequest[DomainArgs, Dom
 		reflectDomainConfig(&inputs, req.Inputs, cfg)
 	}
 
-	state := DomainState{DomainArgs: inputs, DnsRecords: records}
+	state := DomainState{DomainArgs: inputs, DnsRecords: records, DkimRecords: parseDkimRecords(records)}
 
 	return infer.ReadResponse[DomainArgs, DomainState]{ID: id, Inputs: inputs, State: state}, nil
 }
@@ -465,7 +523,7 @@ func (d *Domain) Read(ctx context.Context, req infer.ReadRequest[DomainArgs, Dom
 // only reconciles the optional config fields plus the disabled flag.
 func (d *Domain) Update(ctx context.Context, req infer.UpdateRequest[DomainArgs, DomainState]) (infer.UpdateResponse[DomainState], error) {
 	inputs := req.Inputs
-	state := DomainState{DomainArgs: inputs, DnsRecords: req.State.DnsRecords}
+	state := DomainState{DomainArgs: inputs, DnsRecords: req.State.DnsRecords, DkimRecords: req.State.DkimRecords}
 
 	if err := validateMtaSts(inputs.MtaSts); err != nil {
 		return infer.UpdateResponse[DomainState]{}, err
@@ -556,6 +614,7 @@ func (d *Domain) Update(ctx context.Context, req infer.UpdateRequest[DomainArgs,
 		return infer.UpdateResponse[DomainState]{}, fmt.Errorf("reading DNS records for domain %q: %w", domain, err)
 	}
 	state.DnsRecords = records
+	state.DkimRecords = parseDkimRecords(records)
 
 	return infer.UpdateResponse[DomainState]{Output: state}, nil
 }
