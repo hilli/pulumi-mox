@@ -369,6 +369,17 @@ func (d *Domain) Create(ctx context.Context, req infer.CreateRequest[DomainArgs]
 	if err := validateMtaSts(req.Inputs.MtaSts); err != nil {
 		return infer.CreateResponse[DomainState]{}, err
 	}
+	// mox rejects a non-empty localpart when the account already exists: in that
+	// case the domain is simply attached to the existing account, with no new
+	// localpart@domain address created. This is what lets several domains share
+	// one account (e.g. a single "postmaster" account across every domain).
+	exists, err := client.AccountExists(ctx, account)
+	if err != nil {
+		return infer.CreateResponse[DomainState]{}, fmt.Errorf("checking account %q for domain %q: %w", account, req.Inputs.Domain, err)
+	}
+	if exists {
+		localpart = ""
+	}
 	if err := client.DomainAdd(ctx, disabled, req.Inputs.Domain, account, localpart); err != nil {
 		return infer.CreateResponse[DomainState]{}, fmt.Errorf("adding domain %q: %w", req.Inputs.Domain, err)
 	}
@@ -590,8 +601,18 @@ func (d *Domain) Delete(ctx context.Context, req infer.DeleteRequest[DomainState
 		return infer.DeleteResponse{}, fmt.Errorf("checking account %q for domain %q: %w", account, req.ID, err)
 	}
 	if exists {
-		if err := client.AccountRemove(ctx, account); err != nil {
-			return infer.DeleteResponse{}, fmt.Errorf("removing account %q for domain %q: %w", account, req.ID, err)
+		// Only remove the account if this domain was its sole owner. A shared
+		// account (e.g. a single "postmaster" attached to several domains, the
+		// localpart="" path in Create) keeps destinations for the other domains
+		// and must survive — removing it would break every domain referencing it.
+		acc, err := client.Account(ctx, account)
+		if err != nil {
+			return infer.DeleteResponse{}, fmt.Errorf("reading account %q for domain %q: %w", account, req.ID, err)
+		}
+		if len(acc.Destinations) == 0 {
+			if err := client.AccountRemove(ctx, account); err != nil {
+				return infer.DeleteResponse{}, fmt.Errorf("removing account %q for domain %q: %w", account, req.ID, err)
+			}
 		}
 	}
 	return infer.DeleteResponse{}, nil
