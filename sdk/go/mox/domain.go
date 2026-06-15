@@ -40,6 +40,8 @@ type Domain struct {
 	MtaSts DomainMtaStsPtrOutput `pulumi:"mtaSts"`
 	// Domain-level outgoing routing rules.
 	Routes AccountRouteArrayOutput `pulumi:"routes"`
+	// Domain-level Sieve policy. Removing a previously-set block clears it.
+	Sieve DomainSievePtrOutput `pulumi:"sieve"`
 	// TLSRPT report destination. Removing a previously-set block clears it.
 	TlsRpt DomainReportAddressPtrOutput `pulumi:"tlsRpt"`
 }
@@ -113,6 +115,8 @@ type domainArgs struct {
 	MtaSts *DomainMtaSts `pulumi:"mtaSts"`
 	// Domain-level outgoing routing rules.
 	Routes []AccountRoute `pulumi:"routes"`
+	// Domain-level Sieve policy. Removing a previously-set block clears it.
+	Sieve *DomainSieve `pulumi:"sieve"`
 	// TLSRPT report destination. Removing a previously-set block clears it.
 	TlsRpt *DomainReportAddress `pulumi:"tlsRpt"`
 }
@@ -139,6 +143,8 @@ type DomainArgs struct {
 	MtaSts DomainMtaStsPtrInput
 	// Domain-level outgoing routing rules.
 	Routes AccountRouteArrayInput
+	// Domain-level Sieve policy. Removing a previously-set block clears it.
+	Sieve DomainSievePtrInput
 	// TLSRPT report destination. Removing a previously-set block clears it.
 	TlsRpt DomainReportAddressPtrInput
 }
@@ -288,6 +294,11 @@ func (o DomainOutput) MtaSts() DomainMtaStsPtrOutput {
 // Domain-level outgoing routing rules.
 func (o DomainOutput) Routes() AccountRouteArrayOutput {
 	return o.ApplyT(func(v *Domain) AccountRouteArrayOutput { return v.Routes }).(AccountRouteArrayOutput)
+}
+
+// Domain-level Sieve policy. Removing a previously-set block clears it.
+func (o DomainOutput) Sieve() DomainSievePtrOutput {
+	return o.ApplyT(func(v *Domain) DomainSievePtrOutput { return v.Sieve }).(DomainSievePtrOutput)
 }
 
 // TLSRPT report destination. Removing a previously-set block clears it.

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"reflect"
 	"regexp"
 	"strings"
 	"time"
@@ -21,8 +22,8 @@ import (
 // the account if it does not yet exist. The domain name, initial account and
 // initial localpart are immutable and force a replacement when changed. The
 // remaining configuration fields (description, client-settings domain, MTA-STS,
-// DMARC, TLSRPT, localpart config, routes and disabled) are mutable in place via
-// Update.
+// DMARC, TLSRPT, localpart config, routes, Sieve policy and disabled) are
+// mutable in place via Update.
 type Domain struct{}
 
 // DomainArgs are the user-supplied inputs.
@@ -55,6 +56,9 @@ type DomainArgs struct {
 	LocalpartConfig *DomainLocalpartConfig `pulumi:"localpartConfig,optional"`
 	// Routes are the domain's outgoing routing rules.
 	Routes []AccountRoute `pulumi:"routes,optional"`
+	// Sieve is the domain-level Sieve policy. Unset leaves it unmanaged; removing
+	// a previously-set block clears the domain override.
+	Sieve *DomainSieve `pulumi:"sieve,optional"`
 }
 
 // DomainMtaSts is the domain's MTA-STS policy configuration.
@@ -90,6 +94,19 @@ type DomainLocalpartConfig struct {
 	CatchallSeparators []string `pulumi:"catchallSeparators,optional"`
 	// CaseSensitive makes localparts case-sensitive when true.
 	CaseSensitive bool `pulumi:"caseSensitive,optional"`
+}
+
+// DomainSieve configures domain-level Sieve policy toggles. Nil fields inherit
+// from the server policy or account policy.
+type DomainSieve struct {
+	// Enabled enables or disables Sieve filtering at this domain scope.
+	Enabled *bool `pulumi:"enabled,optional"`
+	// AutoCreateMailboxes controls whether fileinto creates missing mailboxes.
+	AutoCreateMailboxes *bool `pulumi:"autoCreateMailboxes,optional"`
+	// RunOnDelivery controls running the active script for incoming SMTP delivery.
+	RunOnDelivery *bool `pulumi:"runOnDelivery,optional"`
+	// RunOnIMAPEvents controls RFC 6785 IMAPSIEVE execution on IMAP events.
+	RunOnIMAPEvents *bool `pulumi:"runOnIMAPEvents,optional"`
 }
 
 // DkimDNSRecord is a single DKIM public-key DNS TXT record mox expects to be
@@ -168,6 +185,7 @@ func (a *DomainArgs) Annotate(an infer.Annotator) {
 	an.Describe(&a.TlsRpt, "TLSRPT report destination. Removing a previously-set block clears it.")
 	an.Describe(&a.LocalpartConfig, "Localpart catch-all separators and case-sensitivity.")
 	an.Describe(&a.Routes, "Domain-level outgoing routing rules.")
+	an.Describe(&a.Sieve, "Domain-level Sieve policy. Removing a previously-set block clears it.")
 }
 
 func (m *DomainMtaSts) Annotate(an infer.Annotator) {
@@ -187,6 +205,13 @@ func (r *DomainReportAddress) Annotate(an infer.Annotator) {
 func (l *DomainLocalpartConfig) Annotate(an infer.Annotator) {
 	an.Describe(&l.CatchallSeparators, "Separators used for sub-addressing, e.g. \"+\".")
 	an.Describe(&l.CaseSensitive, "Whether localparts are case-sensitive.")
+}
+
+func (s *DomainSieve) Annotate(an infer.Annotator) {
+	an.Describe(&s.Enabled, "Enable or disable Sieve filtering at this domain scope.")
+	an.Describe(&s.AutoCreateMailboxes, "Whether fileinto creates missing mailboxes.")
+	an.Describe(&s.RunOnDelivery, "Whether the active Sieve script runs for incoming SMTP delivery.")
+	an.Describe(&s.RunOnIMAPEvents, "Whether RFC 6785 IMAPSIEVE scripts run on IMAP events.")
 }
 
 func (s *DomainState) Annotate(an infer.Annotator) {
@@ -297,6 +322,34 @@ func localpartConfigChanged(a, b *DomainLocalpartConfig) bool {
 	return a.CaseSensitive != b.CaseSensitive || !stringsEqual(a.CatchallSeparators, b.CatchallSeparators)
 }
 
+func toMoxSieve(s *DomainSieve) *moxadmin.SievePolicy {
+	if s == nil {
+		return nil
+	}
+	return &moxadmin.SievePolicy{
+		Enabled:             s.Enabled,
+		AutoCreateMailboxes: s.AutoCreateMailboxes,
+		RunOnDelivery:       s.RunOnDelivery,
+		RunOnIMAPEvents:     s.RunOnIMAPEvents,
+	}
+}
+
+func fromMoxSieve(s *moxadmin.SievePolicy) *DomainSieve {
+	if s == nil {
+		return nil
+	}
+	return &DomainSieve{
+		Enabled:             s.Enabled,
+		AutoCreateMailboxes: s.AutoCreateMailboxes,
+		RunOnDelivery:       s.RunOnDelivery,
+		RunOnIMAPEvents:     s.RunOnIMAPEvents,
+	}
+}
+
+func sieveChanged(a, b *DomainSieve) bool {
+	return !reflect.DeepEqual(fromMoxSieve(toMoxSieve(a)), fromMoxSieve(toMoxSieve(b)))
+}
+
 // applyDomainConfig writes the supplied optional config fields for a domain in
 // the order mox requires (localpart config before DMARC/TLSRPT so separator
 // validation against report localparts is consistent). The disabled flag is set
@@ -332,6 +385,11 @@ func applyDomainConfig(ctx context.Context, client *moxadmin.Client, domain stri
 			return fmt.Errorf("saving routes: %w", err)
 		}
 	}
+	if in.Sieve != nil {
+		if err := client.DomainSieveSave(ctx, domain, toMoxSieve(in.Sieve)); err != nil {
+			return fmt.Errorf("saving Sieve policy: %w", err)
+		}
+	}
 	if in.MtaSts != nil {
 		if err := client.DomainMTASTSSave(ctx, domain, in.MtaSts.PolicyID, in.MtaSts.Mode, toNanos(in.MtaSts.MaxAgeSeconds), in.MtaSts.Mx); err != nil {
 			return fmt.Errorf("saving MTA-STS policy: %w", err)
@@ -350,7 +408,8 @@ func domainConfigManaged(in DomainArgs) bool {
 		in.Dmarc != nil ||
 		in.TlsRpt != nil ||
 		in.LocalpartConfig != nil ||
-		in.Routes != nil
+		in.Routes != nil ||
+		in.Sieve != nil
 }
 
 // reflectDomainConfig updates inputs in place from mox's domain config, touching
@@ -392,6 +451,9 @@ func reflectDomainConfig(inputs *DomainArgs, managed DomainArgs, cfg moxadmin.Do
 	}
 	if managed.Routes != nil {
 		inputs.Routes = fromMoxRoutes(cfg.Routes)
+	}
+	if managed.Sieve != nil {
+		inputs.Sieve = fromMoxSieve(cfg.Sieve)
 	}
 }
 
@@ -559,6 +621,11 @@ func (d *Domain) Update(ctx context.Context, req infer.UpdateRequest[DomainArgs,
 	if routesChanged(prior.Routes, inputs.Routes) {
 		if err := client.DomainRoutesSave(ctx, domain, toMoxRoutes(inputs.Routes)); err != nil {
 			return infer.UpdateResponse[DomainState]{}, fmt.Errorf("saving routes: %w", err)
+		}
+	}
+	if sieveChanged(prior.Sieve, inputs.Sieve) {
+		if err := client.DomainSieveSave(ctx, domain, toMoxSieve(inputs.Sieve)); err != nil {
+			return infer.UpdateResponse[DomainState]{}, fmt.Errorf("saving Sieve policy: %w", err)
 		}
 	}
 

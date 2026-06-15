@@ -606,6 +606,15 @@ type DomainMTASTS struct {
 	MX []string `json:"MX"`
 }
 
+// SievePolicy mirrors the boolean domain-level Sieve policy toggles the provider
+// manages. Omitted fields inherit from the next broader scope.
+type SievePolicy struct {
+	Enabled             *bool `json:"Enabled,omitempty"`
+	AutoCreateMailboxes *bool `json:"AutoCreateMailboxes,omitempty"`
+	RunOnDelivery       *bool `json:"RunOnDelivery,omitempty"`
+	RunOnIMAPEvents     *bool `json:"RunOnIMAPEvents,omitempty"`
+}
+
 // DomainConfig mirrors the subset of mox's config.Domain returned by the sherpa
 // DomainConfig method. Aliases is keyed by the alias localpart (the part before
 // "@"). Nullable nested configs (DMARC/MTASTS/TLSRPT) are nil when unset.
@@ -621,6 +630,7 @@ type DomainConfig struct {
 	TLSRPT                      *DomainReportAddress `json:"TLSRPT"`
 	Routes                      []Route              `json:"Routes"`
 	Aliases                     map[string]Alias     `json:"Aliases"`
+	Sieve                       *SievePolicy         `json:"Sieve"`
 }
 
 // Alias returns the alias with the given localpart, matching case-insensitively,
@@ -646,6 +656,12 @@ func (c *Client) DomainConfig(ctx context.Context, domain string) (DomainConfig,
 		return DomainConfig{}, err
 	}
 	return dc, nil
+}
+
+// DomainSieveSave replaces the domain-level Sieve policy. A nil policy clears
+// the override.
+func (c *Client) DomainSieveSave(ctx context.Context, domain string, sieve *SievePolicy) error {
+	return c.Call(ctx, "DomainSieveSave", []any{domain, sieve}, nil)
 }
 
 // AliasAdd creates an alias for the given localpart and domain.

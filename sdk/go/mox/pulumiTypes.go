@@ -720,6 +720,200 @@ func (o DomainReportAddressPtrOutput) Mailbox() pulumi.StringPtrOutput {
 	}).(pulumi.StringPtrOutput)
 }
 
+type DomainSieve struct {
+	// Whether fileinto creates missing mailboxes.
+	AutoCreateMailboxes *bool `pulumi:"autoCreateMailboxes"`
+	// Enable or disable Sieve filtering at this domain scope.
+	Enabled *bool `pulumi:"enabled"`
+	// Whether the active Sieve script runs for incoming SMTP delivery.
+	RunOnDelivery *bool `pulumi:"runOnDelivery"`
+	// Whether RFC 6785 IMAPSIEVE scripts run on IMAP events.
+	RunOnIMAPEvents *bool `pulumi:"runOnIMAPEvents"`
+}
+
+// DomainSieveInput is an input type that accepts DomainSieveArgs and DomainSieveOutput values.
+// You can construct a concrete instance of `DomainSieveInput` via:
+//
+//	DomainSieveArgs{...}
+type DomainSieveInput interface {
+	pulumi.Input
+
+	ToDomainSieveOutput() DomainSieveOutput
+	ToDomainSieveOutputWithContext(context.Context) DomainSieveOutput
+}
+
+type DomainSieveArgs struct {
+	// Whether fileinto creates missing mailboxes.
+	AutoCreateMailboxes pulumi.BoolPtrInput `pulumi:"autoCreateMailboxes"`
+	// Enable or disable Sieve filtering at this domain scope.
+	Enabled pulumi.BoolPtrInput `pulumi:"enabled"`
+	// Whether the active Sieve script runs for incoming SMTP delivery.
+	RunOnDelivery pulumi.BoolPtrInput `pulumi:"runOnDelivery"`
+	// Whether RFC 6785 IMAPSIEVE scripts run on IMAP events.
+	RunOnIMAPEvents pulumi.BoolPtrInput `pulumi:"runOnIMAPEvents"`
+}
+
+func (DomainSieveArgs) ElementType() reflect.Type {
+	return reflect.TypeOf((*DomainSieve)(nil)).Elem()
+}
+
+func (i DomainSieveArgs) ToDomainSieveOutput() DomainSieveOutput {
+	return i.ToDomainSieveOutputWithContext(context.Background())
+}
+
+func (i DomainSieveArgs) ToDomainSieveOutputWithContext(ctx context.Context) DomainSieveOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(DomainSieveOutput)
+}
+
+func (i DomainSieveArgs) ToDomainSievePtrOutput() DomainSievePtrOutput {
+	return i.ToDomainSievePtrOutputWithContext(context.Background())
+}
+
+func (i DomainSieveArgs) ToDomainSievePtrOutputWithContext(ctx context.Context) DomainSievePtrOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(DomainSieveOutput).ToDomainSievePtrOutputWithContext(ctx)
+}
+
+// DomainSievePtrInput is an input type that accepts DomainSieveArgs, DomainSievePtr and DomainSievePtrOutput values.
+// You can construct a concrete instance of `DomainSievePtrInput` via:
+//
+//	        DomainSieveArgs{...}
+//
+//	or:
+//
+//	        nil
+type DomainSievePtrInput interface {
+	pulumi.Input
+
+	ToDomainSievePtrOutput() DomainSievePtrOutput
+	ToDomainSievePtrOutputWithContext(context.Context) DomainSievePtrOutput
+}
+
+type domainSievePtrType DomainSieveArgs
+
+func DomainSievePtr(v *DomainSieveArgs) DomainSievePtrInput {
+	return (*domainSievePtrType)(v)
+}
+
+func (*domainSievePtrType) ElementType() reflect.Type {
+	return reflect.TypeOf((**DomainSieve)(nil)).Elem()
+}
+
+func (i *domainSievePtrType) ToDomainSievePtrOutput() DomainSievePtrOutput {
+	return i.ToDomainSievePtrOutputWithContext(context.Background())
+}
+
+func (i *domainSievePtrType) ToDomainSievePtrOutputWithContext(ctx context.Context) DomainSievePtrOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(DomainSievePtrOutput)
+}
+
+type DomainSieveOutput struct{ *pulumi.OutputState }
+
+func (DomainSieveOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((*DomainSieve)(nil)).Elem()
+}
+
+func (o DomainSieveOutput) ToDomainSieveOutput() DomainSieveOutput {
+	return o
+}
+
+func (o DomainSieveOutput) ToDomainSieveOutputWithContext(ctx context.Context) DomainSieveOutput {
+	return o
+}
+
+func (o DomainSieveOutput) ToDomainSievePtrOutput() DomainSievePtrOutput {
+	return o.ToDomainSievePtrOutputWithContext(context.Background())
+}
+
+func (o DomainSieveOutput) ToDomainSievePtrOutputWithContext(ctx context.Context) DomainSievePtrOutput {
+	return o.ApplyTWithContext(ctx, func(_ context.Context, v DomainSieve) *DomainSieve {
+		return &v
+	}).(DomainSievePtrOutput)
+}
+
+// Whether fileinto creates missing mailboxes.
+func (o DomainSieveOutput) AutoCreateMailboxes() pulumi.BoolPtrOutput {
+	return o.ApplyT(func(v DomainSieve) *bool { return v.AutoCreateMailboxes }).(pulumi.BoolPtrOutput)
+}
+
+// Enable or disable Sieve filtering at this domain scope.
+func (o DomainSieveOutput) Enabled() pulumi.BoolPtrOutput {
+	return o.ApplyT(func(v DomainSieve) *bool { return v.Enabled }).(pulumi.BoolPtrOutput)
+}
+
+// Whether the active Sieve script runs for incoming SMTP delivery.
+func (o DomainSieveOutput) RunOnDelivery() pulumi.BoolPtrOutput {
+	return o.ApplyT(func(v DomainSieve) *bool { return v.RunOnDelivery }).(pulumi.BoolPtrOutput)
+}
+
+// Whether RFC 6785 IMAPSIEVE scripts run on IMAP events.
+func (o DomainSieveOutput) RunOnIMAPEvents() pulumi.BoolPtrOutput {
+	return o.ApplyT(func(v DomainSieve) *bool { return v.RunOnIMAPEvents }).(pulumi.BoolPtrOutput)
+}
+
+type DomainSievePtrOutput struct{ *pulumi.OutputState }
+
+func (DomainSievePtrOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((**DomainSieve)(nil)).Elem()
+}
+
+func (o DomainSievePtrOutput) ToDomainSievePtrOutput() DomainSievePtrOutput {
+	return o
+}
+
+func (o DomainSievePtrOutput) ToDomainSievePtrOutputWithContext(ctx context.Context) DomainSievePtrOutput {
+	return o
+}
+
+func (o DomainSievePtrOutput) Elem() DomainSieveOutput {
+	return o.ApplyT(func(v *DomainSieve) DomainSieve {
+		if v != nil {
+			return *v
+		}
+		var ret DomainSieve
+		return ret
+	}).(DomainSieveOutput)
+}
+
+// Whether fileinto creates missing mailboxes.
+func (o DomainSievePtrOutput) AutoCreateMailboxes() pulumi.BoolPtrOutput {
+	return o.ApplyT(func(v *DomainSieve) *bool {
+		if v == nil {
+			return nil
+		}
+		return v.AutoCreateMailboxes
+	}).(pulumi.BoolPtrOutput)
+}
+
+// Enable or disable Sieve filtering at this domain scope.
+func (o DomainSievePtrOutput) Enabled() pulumi.BoolPtrOutput {
+	return o.ApplyT(func(v *DomainSieve) *bool {
+		if v == nil {
+			return nil
+		}
+		return v.Enabled
+	}).(pulumi.BoolPtrOutput)
+}
+
+// Whether the active Sieve script runs for incoming SMTP delivery.
+func (o DomainSievePtrOutput) RunOnDelivery() pulumi.BoolPtrOutput {
+	return o.ApplyT(func(v *DomainSieve) *bool {
+		if v == nil {
+			return nil
+		}
+		return v.RunOnDelivery
+	}).(pulumi.BoolPtrOutput)
+}
+
+// Whether RFC 6785 IMAPSIEVE scripts run on IMAP events.
+func (o DomainSievePtrOutput) RunOnIMAPEvents() pulumi.BoolPtrOutput {
+	return o.ApplyT(func(v *DomainSieve) *bool {
+		if v == nil {
+			return nil
+		}
+		return v.RunOnIMAPEvents
+	}).(pulumi.BoolPtrOutput)
+}
+
 func init() {
 	pulumi.RegisterInputType(reflect.TypeOf((*AccountRouteInput)(nil)).Elem(), AccountRouteArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*AccountRouteArrayInput)(nil)).Elem(), AccountRouteArray{})
@@ -729,6 +923,8 @@ func init() {
 	pulumi.RegisterInputType(reflect.TypeOf((*DomainMtaStsPtrInput)(nil)).Elem(), DomainMtaStsArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*DomainReportAddressInput)(nil)).Elem(), DomainReportAddressArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*DomainReportAddressPtrInput)(nil)).Elem(), DomainReportAddressArgs{})
+	pulumi.RegisterInputType(reflect.TypeOf((*DomainSieveInput)(nil)).Elem(), DomainSieveArgs{})
+	pulumi.RegisterInputType(reflect.TypeOf((*DomainSievePtrInput)(nil)).Elem(), DomainSieveArgs{})
 	pulumi.RegisterOutputType(AccountRouteOutput{})
 	pulumi.RegisterOutputType(AccountRouteArrayOutput{})
 	pulumi.RegisterOutputType(DkimDNSRecordOutput{})
@@ -739,4 +935,6 @@ func init() {
 	pulumi.RegisterOutputType(DomainMtaStsPtrOutput{})
 	pulumi.RegisterOutputType(DomainReportAddressOutput{})
 	pulumi.RegisterOutputType(DomainReportAddressPtrOutput{})
+	pulumi.RegisterOutputType(DomainSieveOutput{})
+	pulumi.RegisterOutputType(DomainSievePtrOutput{})
 }
