@@ -1,5 +1,6 @@
 # Build output
 /bin/
+/.worktrees/
 
 # GoReleaser output
 /dist/
