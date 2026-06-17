@@ -18,7 +18,7 @@ import (
 
 // Version is the provider/plugin version. It is overridden at build time via
 // -ldflags "-X github.com/hilli/pulumi-mox/provider.Version=x.y.z".
-var Version = "0.3.0"
+var Version = "0.3.1"
 
 // Config holds the provider-level configuration. Values come from the Pulumi
 // stack config (mox:adminUrl, mox:adminPassword, mox:insecureSkipVerify) with
@@ -75,6 +75,53 @@ func (c *Config) Configure(_ context.Context) error {
 	c.client = client
 	return nil
 }
+
+// Diff overrides infer's default provider-config diff.
+//
+// infer's default (config.diffConfig -> the generic diff helper) compares the
+// raw old and new provider-config property maps and treats *any* changed key
+// other than "version" as replacement-forcing. Crucially it strips infer's
+// internal bookkeeping keys ("__pulumi-go-provider-infer",
+// "__pulumi-go-provider-version") and "version" from the *new* inputs but NOT
+// from the old state. Once a provider has been written to state by a recent
+// pulumi-go-provider (which persists those __-prefixed keys), every later
+// plugin version bump makes those keys read as phantom deletions, which the
+// default diff marks as replacement-forcing. The engine then replaces *every*
+// resource managed by the provider on a mere version bump
+// (step_generator.providerChanged -> DiffConfig). See
+// https://github.com/pulumi/pulumi-go-provider/issues/409.
+//
+// By diffing only the typed config fields we keep provider identity — and thus
+// the identity of every downstream Domain/Account/Address/Sieve — stable across
+// plugin version bumps. A change to the target server (adminUrl) or TLS trust
+// (insecureSkipVerify) still replaces the provider; an admin credential
+// rotation (adminPassword) reconfigures it in place without churning resources.
+func (c *Config) Diff(_ context.Context, req infer.DiffRequest[*Config, *Config]) (infer.DiffResponse, error) {
+	oldCfg, newCfg := req.State, req.Inputs
+	if oldCfg == nil || newCfg == nil {
+		// Be conservative: if either side is missing we cannot prove a real
+		// change, so report none rather than risk replacing live resources.
+		return infer.DiffResponse{}, nil
+	}
+
+	detailed := map[string]p.PropertyDiff{}
+	if oldCfg.AdminURL != newCfg.AdminURL {
+		detailed["adminUrl"] = p.PropertyDiff{Kind: p.UpdateReplace}
+	}
+	if derefBool(oldCfg.InsecureSkipVerify) != derefBool(newCfg.InsecureSkipVerify) {
+		detailed["insecureSkipVerify"] = p.PropertyDiff{Kind: p.UpdateReplace}
+	}
+	if oldCfg.AdminPassword != newCfg.AdminPassword {
+		detailed["adminPassword"] = p.PropertyDiff{Kind: p.Update}
+	}
+
+	return infer.DiffResponse{
+		HasChanges:   len(detailed) > 0,
+		DetailedDiff: detailed,
+	}, nil
+}
+
+func derefBool(b *bool) bool { return b != nil && *b }
 
 // clientFromContext returns the configured admin client. Resources call this in
 // their Create/Read/Delete methods. It returns an actionable error when the
