@@ -21,9 +21,9 @@ type SieveArgs struct {
 	// Account is the existing mox account that owns the script. Changing it
 	// forces a replacement: a script belongs to exactly one account.
 	Account string `pulumi:"account" provider:"replaceOnChanges"`
-	// Name is the script name within the account. Changing it forces a
-	// replacement (mox identifies a script by account+name).
-	Name string `pulumi:"name" provider:"replaceOnChanges"`
+	// Name is the script name within the account. Changing it renames the script
+	// through mox's AccountSieveRenameScript API.
+	Name string `pulumi:"name"`
 	// Content is the Sieve script source. mox validates it on store; an invalid
 	// script is rejected.
 	Content string `pulumi:"content"`
@@ -106,6 +106,10 @@ func (s *Sieve) Read(ctx context.Context, req infer.ReadRequest[SieveArgs, Sieve
 	if err != nil {
 		return infer.ReadResponse[SieveArgs, SieveState]{}, err
 	}
+	if req.State.Account != "" && req.State.Name != "" {
+		account = req.State.Account
+		name = req.State.Name
+	}
 
 	scripts, activeName, err := client.AccountSieveScripts(ctx, account)
 	if err != nil {
@@ -144,16 +148,14 @@ func (s *Sieve) Read(ctx context.Context, req infer.ReadRequest[SieveArgs, Sieve
 	}
 
 	return infer.ReadResponse[SieveArgs, SieveState]{
-		ID:     req.ID,
+		ID:     sieveID(account, name),
 		Inputs: inputs,
 		State:  SieveState{SieveArgs: inputs},
 	}, nil
 }
 
-// Update applies in-place changes. Account and Name are replaceOnChanges, so
-// only Content and Active ever change here: a changed Content re-stores the
-// script (mox replaces an existing script of the same name), and a changed
-// Active (de)activates it.
+// Update applies in-place changes. Account is replaceOnChanges; Name is renamed
+// in place through mox before applying content or activation changes.
 func (s *Sieve) Update(ctx context.Context, req infer.UpdateRequest[SieveArgs, SieveState]) (infer.UpdateResponse[SieveState], error) {
 	state := SieveState{SieveArgs: req.Inputs}
 
@@ -166,21 +168,30 @@ func (s *Sieve) Update(ctx context.Context, req infer.UpdateRequest[SieveArgs, S
 		return infer.UpdateResponse[SieveState]{}, err
 	}
 
+	account := req.State.Account
+	name := req.State.Name
+	if req.Inputs.Name != req.State.Name {
+		if err := client.AccountSieveRenameScript(ctx, account, req.State.Name, req.Inputs.Name); err != nil {
+			return infer.UpdateResponse[SieveState]{}, fmt.Errorf("renaming sieve script %q to %q on account %q: %w", req.State.Name, req.Inputs.Name, account, err)
+		}
+		name = req.Inputs.Name
+	}
+
 	if req.Inputs.Content != req.State.Content {
-		if _, err := client.AccountSievePutScript(ctx, req.State.Account, req.State.Name, req.Inputs.Content); err != nil {
-			return infer.UpdateResponse[SieveState]{}, fmt.Errorf("updating sieve script %q on account %q: %w", req.State.Name, req.State.Account, err)
+		if _, err := client.AccountSievePutScript(ctx, account, name, req.Inputs.Content); err != nil {
+			return infer.UpdateResponse[SieveState]{}, fmt.Errorf("updating sieve script %q on account %q: %w", name, account, err)
 		}
 	}
 
 	if boolOr(req.Inputs.Active, false) != boolOr(req.State.Active, false) {
 		if boolOr(req.Inputs.Active, false) {
-			if err := client.AccountSieveSetActive(ctx, req.State.Account, req.State.Name); err != nil {
-				return infer.UpdateResponse[SieveState]{}, fmt.Errorf("activating sieve script %q on account %q: %w", req.State.Name, req.State.Account, err)
+			if err := client.AccountSieveSetActive(ctx, account, name); err != nil {
+				return infer.UpdateResponse[SieveState]{}, fmt.Errorf("activating sieve script %q on account %q: %w", name, account, err)
 			}
-		} else if err := client.AccountSieveSetActive(ctx, req.State.Account, ""); err != nil {
+		} else if err := client.AccountSieveSetActive(ctx, account, ""); err != nil {
 			// Deactivate: clear the account's active script (this script was the
 			// active one, per the recorded state).
-			return infer.UpdateResponse[SieveState]{}, fmt.Errorf("deactivating sieve script %q on account %q: %w", req.State.Name, req.State.Account, err)
+			return infer.UpdateResponse[SieveState]{}, fmt.Errorf("deactivating sieve script %q on account %q: %w", name, account, err)
 		}
 	}
 
@@ -199,6 +210,10 @@ func (s *Sieve) Delete(ctx context.Context, req infer.DeleteRequest[SieveState])
 	account, name, err := splitSieveID(req.ID)
 	if err != nil {
 		return infer.DeleteResponse{}, err
+	}
+	if req.State.Account != "" && req.State.Name != "" {
+		account = req.State.Account
+		name = req.State.Name
 	}
 
 	exists, active, err := client.SieveScriptExists(ctx, account, name)

@@ -391,3 +391,36 @@ func (f *GetLoginAttempts) Invoke(ctx context.Context, req infer.FunctionRequest
 	}
 	return infer.FunctionResponse[GetLoginAttemptsResult]{Output: GetLoginAttemptsResult{Result: res}}, nil
 }
+
+// --- getCheckUpdatesEnabled ---------------------------------------------------
+
+// GetCheckUpdatesEnabled reports whether mox's static update-check setting is enabled.
+type GetCheckUpdatesEnabled struct{}
+
+// GetCheckUpdatesEnabledArgs takes no inputs.
+type GetCheckUpdatesEnabledArgs struct{}
+
+// GetCheckUpdatesEnabledResult holds the update-check setting.
+type GetCheckUpdatesEnabledResult struct {
+	Enabled bool `pulumi:"enabled"`
+}
+
+func (f *GetCheckUpdatesEnabled) Annotate(a infer.Annotator) {
+	a.Describe(f, "Reports whether mox's static update-check setting is enabled. The admin API exposes this as read-only.")
+}
+
+func (r *GetCheckUpdatesEnabledResult) Annotate(a infer.Annotator) {
+	a.Describe(&r.Enabled, "Whether mox checks for upstream updates.")
+}
+
+func (f *GetCheckUpdatesEnabled) Invoke(ctx context.Context, req infer.FunctionRequest[GetCheckUpdatesEnabledArgs]) (infer.FunctionResponse[GetCheckUpdatesEnabledResult], error) {
+	client, err := clientFromContext(ctx)
+	if err != nil {
+		return infer.FunctionResponse[GetCheckUpdatesEnabledResult]{}, err
+	}
+	enabled, err := client.CheckUpdatesEnabled(ctx)
+	if err != nil {
+		return infer.FunctionResponse[GetCheckUpdatesEnabledResult]{}, err
+	}
+	return infer.FunctionResponse[GetCheckUpdatesEnabledResult]{Output: GetCheckUpdatesEnabledResult{Enabled: enabled}}, nil
+}

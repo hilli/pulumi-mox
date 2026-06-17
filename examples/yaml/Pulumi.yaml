@@ -7,6 +7,14 @@ description: Smoke example for the native mox provider.
 #   pulumi config set --secret mox:adminPassword <password>
 # (or via the MOX_ADMIN_URL / MOX_ADMIN_PASSWORD environment variables).
 
+variables:
+  # This is read-only because mox exposes CheckUpdates from static mox.conf via
+  # the admin API, but does not expose an API setter for it.
+  updateCheck:
+    fn::invoke:
+      function: mox:index:getCheckUpdatesEnabled
+      arguments: {}
+
 resources:
   example:
     type: mox:Domain
@@ -25,18 +33,69 @@ resources:
       # No password supplied: the provider generates one on create and exposes
       # it as the effectivePassword secret output (see testUserPassword below).
       # To set your own instead, add `password: <value>` here.
-  # testuserAlias:
-  #   type: mox:Alias
-  #   properties:
-  #     domain: ${example.domain}
-  #     source: testuser@${example.domain}
-  #     destination: testalias@${example.domain}
+
+  testlist:
+    type: mox:Alias
+    properties:
+      address: list@${example.domain}
+      members:
+        - ${testuser.address}
+      postPublic: false
+
   testuser2:
     type: mox:Account
     properties:
       account: testuser2
       address: testuser2@${example.domain}
       password: mysecretpassword
+
+  globalRoutes:
+    type: mox:GlobalRoutes
+    properties:
+      # Exercise the global RoutesSave API. localserve has no named transports,
+      # so the smoke stack keeps the desired global route list empty. See
+      # examples/yaml-advanced for non-empty routes.
+      routes: []
+
+  webserver:
+    type: mox:WebserverConfig
+    properties:
+      # Dynamic domains.conf web config: redirects and ordered handlers.
+      redirects:
+        - from: old-web.example.com
+          to: new-web.example.com
+      handlers:
+        - logName: example-redirect
+          domain: web.example.com
+          pathRegexp: ^/
+          dontRedirectPlainHTTP: true
+          redirect:
+            baseUrl: https://www.example.com/
+
+  webadminDebug:
+    type: mox:LogLevel
+    properties:
+      # Package-specific log-level override, cleared again on destroy.
+      package: webadmin
+      level: debug
+
+  dnsblMonitoring:
+    type: mox:DNSBLMonitoring
+    properties:
+      # Extra DNSBLs to monitor for our outgoing IPs. This does not make mox use
+      # them to reject incoming mail; that is static listener config in mox.conf.
+      zones:
+        - dnsbl.example.com
+
+  forwardingSieve:
+    type: mox:Sieve
+    properties:
+      account: ${testuser.account}
+      name: forwarding
+      active: false
+      content: |
+        require ["fileinto"];
+        fileinto "Inbox";
 
 outputs:
   # The mox-generated zone-file lines (MX, SPF, DKIM, DMARC, ...). Feed these
@@ -47,3 +106,7 @@ outputs:
   # The generated account password (secret). Retrieve with:
   #   pulumi stack output testUserPassword --show-secrets
   testUserPassword: ${testuser.effectivePassword}
+  aliasAddress: ${testlist.address}
+  webRedirects: ${webserver.redirects}
+  dnsblZones: ${dnsblMonitoring.zones}
+  checkUpdatesEnabled: ${updateCheck.enabled}

@@ -914,6 +914,936 @@ func (o DomainSievePtrOutput) RunOnIMAPEvents() pulumi.BoolPtrOutput {
 	}).(pulumi.BoolPtrOutput)
 }
 
+type WebDomainRedirect struct {
+	// Source domain to redirect from.
+	From string `pulumi:"from"`
+	// Destination domain to redirect to.
+	To string `pulumi:"to"`
+}
+
+// WebDomainRedirectInput is an input type that accepts WebDomainRedirectArgs and WebDomainRedirectOutput values.
+// You can construct a concrete instance of `WebDomainRedirectInput` via:
+//
+//	WebDomainRedirectArgs{...}
+type WebDomainRedirectInput interface {
+	pulumi.Input
+
+	ToWebDomainRedirectOutput() WebDomainRedirectOutput
+	ToWebDomainRedirectOutputWithContext(context.Context) WebDomainRedirectOutput
+}
+
+type WebDomainRedirectArgs struct {
+	// Source domain to redirect from.
+	From pulumi.StringInput `pulumi:"from"`
+	// Destination domain to redirect to.
+	To pulumi.StringInput `pulumi:"to"`
+}
+
+func (WebDomainRedirectArgs) ElementType() reflect.Type {
+	return reflect.TypeOf((*WebDomainRedirect)(nil)).Elem()
+}
+
+func (i WebDomainRedirectArgs) ToWebDomainRedirectOutput() WebDomainRedirectOutput {
+	return i.ToWebDomainRedirectOutputWithContext(context.Background())
+}
+
+func (i WebDomainRedirectArgs) ToWebDomainRedirectOutputWithContext(ctx context.Context) WebDomainRedirectOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(WebDomainRedirectOutput)
+}
+
+// WebDomainRedirectArrayInput is an input type that accepts WebDomainRedirectArray and WebDomainRedirectArrayOutput values.
+// You can construct a concrete instance of `WebDomainRedirectArrayInput` via:
+//
+//	WebDomainRedirectArray{ WebDomainRedirectArgs{...} }
+type WebDomainRedirectArrayInput interface {
+	pulumi.Input
+
+	ToWebDomainRedirectArrayOutput() WebDomainRedirectArrayOutput
+	ToWebDomainRedirectArrayOutputWithContext(context.Context) WebDomainRedirectArrayOutput
+}
+
+type WebDomainRedirectArray []WebDomainRedirectInput
+
+func (WebDomainRedirectArray) ElementType() reflect.Type {
+	return reflect.TypeOf((*[]WebDomainRedirect)(nil)).Elem()
+}
+
+func (i WebDomainRedirectArray) ToWebDomainRedirectArrayOutput() WebDomainRedirectArrayOutput {
+	return i.ToWebDomainRedirectArrayOutputWithContext(context.Background())
+}
+
+func (i WebDomainRedirectArray) ToWebDomainRedirectArrayOutputWithContext(ctx context.Context) WebDomainRedirectArrayOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(WebDomainRedirectArrayOutput)
+}
+
+type WebDomainRedirectOutput struct{ *pulumi.OutputState }
+
+func (WebDomainRedirectOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((*WebDomainRedirect)(nil)).Elem()
+}
+
+func (o WebDomainRedirectOutput) ToWebDomainRedirectOutput() WebDomainRedirectOutput {
+	return o
+}
+
+func (o WebDomainRedirectOutput) ToWebDomainRedirectOutputWithContext(ctx context.Context) WebDomainRedirectOutput {
+	return o
+}
+
+// Source domain to redirect from.
+func (o WebDomainRedirectOutput) From() pulumi.StringOutput {
+	return o.ApplyT(func(v WebDomainRedirect) string { return v.From }).(pulumi.StringOutput)
+}
+
+// Destination domain to redirect to.
+func (o WebDomainRedirectOutput) To() pulumi.StringOutput {
+	return o.ApplyT(func(v WebDomainRedirect) string { return v.To }).(pulumi.StringOutput)
+}
+
+type WebDomainRedirectArrayOutput struct{ *pulumi.OutputState }
+
+func (WebDomainRedirectArrayOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((*[]WebDomainRedirect)(nil)).Elem()
+}
+
+func (o WebDomainRedirectArrayOutput) ToWebDomainRedirectArrayOutput() WebDomainRedirectArrayOutput {
+	return o
+}
+
+func (o WebDomainRedirectArrayOutput) ToWebDomainRedirectArrayOutputWithContext(ctx context.Context) WebDomainRedirectArrayOutput {
+	return o
+}
+
+func (o WebDomainRedirectArrayOutput) Index(i pulumi.IntInput) WebDomainRedirectOutput {
+	return pulumi.All(o, i).ApplyT(func(vs []interface{}) WebDomainRedirect {
+		return vs[0].([]WebDomainRedirect)[vs[1].(int)]
+	}).(WebDomainRedirectOutput)
+}
+
+type WebForward struct {
+	ResponseHeaders map[string]string `pulumi:"responseHeaders"`
+	StripPath       *bool             `pulumi:"stripPath"`
+	Url             string            `pulumi:"url"`
+}
+
+// WebForwardInput is an input type that accepts WebForwardArgs and WebForwardOutput values.
+// You can construct a concrete instance of `WebForwardInput` via:
+//
+//	WebForwardArgs{...}
+type WebForwardInput interface {
+	pulumi.Input
+
+	ToWebForwardOutput() WebForwardOutput
+	ToWebForwardOutputWithContext(context.Context) WebForwardOutput
+}
+
+type WebForwardArgs struct {
+	ResponseHeaders pulumi.StringMapInput `pulumi:"responseHeaders"`
+	StripPath       pulumi.BoolPtrInput   `pulumi:"stripPath"`
+	Url             pulumi.StringInput    `pulumi:"url"`
+}
+
+func (WebForwardArgs) ElementType() reflect.Type {
+	return reflect.TypeOf((*WebForward)(nil)).Elem()
+}
+
+func (i WebForwardArgs) ToWebForwardOutput() WebForwardOutput {
+	return i.ToWebForwardOutputWithContext(context.Background())
+}
+
+func (i WebForwardArgs) ToWebForwardOutputWithContext(ctx context.Context) WebForwardOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(WebForwardOutput)
+}
+
+func (i WebForwardArgs) ToWebForwardPtrOutput() WebForwardPtrOutput {
+	return i.ToWebForwardPtrOutputWithContext(context.Background())
+}
+
+func (i WebForwardArgs) ToWebForwardPtrOutputWithContext(ctx context.Context) WebForwardPtrOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(WebForwardOutput).ToWebForwardPtrOutputWithContext(ctx)
+}
+
+// WebForwardPtrInput is an input type that accepts WebForwardArgs, WebForwardPtr and WebForwardPtrOutput values.
+// You can construct a concrete instance of `WebForwardPtrInput` via:
+//
+//	        WebForwardArgs{...}
+//
+//	or:
+//
+//	        nil
+type WebForwardPtrInput interface {
+	pulumi.Input
+
+	ToWebForwardPtrOutput() WebForwardPtrOutput
+	ToWebForwardPtrOutputWithContext(context.Context) WebForwardPtrOutput
+}
+
+type webForwardPtrType WebForwardArgs
+
+func WebForwardPtr(v *WebForwardArgs) WebForwardPtrInput {
+	return (*webForwardPtrType)(v)
+}
+
+func (*webForwardPtrType) ElementType() reflect.Type {
+	return reflect.TypeOf((**WebForward)(nil)).Elem()
+}
+
+func (i *webForwardPtrType) ToWebForwardPtrOutput() WebForwardPtrOutput {
+	return i.ToWebForwardPtrOutputWithContext(context.Background())
+}
+
+func (i *webForwardPtrType) ToWebForwardPtrOutputWithContext(ctx context.Context) WebForwardPtrOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(WebForwardPtrOutput)
+}
+
+type WebForwardOutput struct{ *pulumi.OutputState }
+
+func (WebForwardOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((*WebForward)(nil)).Elem()
+}
+
+func (o WebForwardOutput) ToWebForwardOutput() WebForwardOutput {
+	return o
+}
+
+func (o WebForwardOutput) ToWebForwardOutputWithContext(ctx context.Context) WebForwardOutput {
+	return o
+}
+
+func (o WebForwardOutput) ToWebForwardPtrOutput() WebForwardPtrOutput {
+	return o.ToWebForwardPtrOutputWithContext(context.Background())
+}
+
+func (o WebForwardOutput) ToWebForwardPtrOutputWithContext(ctx context.Context) WebForwardPtrOutput {
+	return o.ApplyTWithContext(ctx, func(_ context.Context, v WebForward) *WebForward {
+		return &v
+	}).(WebForwardPtrOutput)
+}
+
+func (o WebForwardOutput) ResponseHeaders() pulumi.StringMapOutput {
+	return o.ApplyT(func(v WebForward) map[string]string { return v.ResponseHeaders }).(pulumi.StringMapOutput)
+}
+
+func (o WebForwardOutput) StripPath() pulumi.BoolPtrOutput {
+	return o.ApplyT(func(v WebForward) *bool { return v.StripPath }).(pulumi.BoolPtrOutput)
+}
+
+func (o WebForwardOutput) Url() pulumi.StringOutput {
+	return o.ApplyT(func(v WebForward) string { return v.Url }).(pulumi.StringOutput)
+}
+
+type WebForwardPtrOutput struct{ *pulumi.OutputState }
+
+func (WebForwardPtrOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((**WebForward)(nil)).Elem()
+}
+
+func (o WebForwardPtrOutput) ToWebForwardPtrOutput() WebForwardPtrOutput {
+	return o
+}
+
+func (o WebForwardPtrOutput) ToWebForwardPtrOutputWithContext(ctx context.Context) WebForwardPtrOutput {
+	return o
+}
+
+func (o WebForwardPtrOutput) Elem() WebForwardOutput {
+	return o.ApplyT(func(v *WebForward) WebForward {
+		if v != nil {
+			return *v
+		}
+		var ret WebForward
+		return ret
+	}).(WebForwardOutput)
+}
+
+func (o WebForwardPtrOutput) ResponseHeaders() pulumi.StringMapOutput {
+	return o.ApplyT(func(v *WebForward) map[string]string {
+		if v == nil {
+			return nil
+		}
+		return v.ResponseHeaders
+	}).(pulumi.StringMapOutput)
+}
+
+func (o WebForwardPtrOutput) StripPath() pulumi.BoolPtrOutput {
+	return o.ApplyT(func(v *WebForward) *bool {
+		if v == nil {
+			return nil
+		}
+		return v.StripPath
+	}).(pulumi.BoolPtrOutput)
+}
+
+func (o WebForwardPtrOutput) Url() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *WebForward) *string {
+		if v == nil {
+			return nil
+		}
+		return &v.Url
+	}).(pulumi.StringPtrOutput)
+}
+
+type WebHandler struct {
+	Compress              *bool        `pulumi:"compress"`
+	Domain                string       `pulumi:"domain"`
+	DontRedirectPlainHTTP *bool        `pulumi:"dontRedirectPlainHTTP"`
+	Forward               *WebForward  `pulumi:"forward"`
+	Internal              *WebInternal `pulumi:"internal"`
+	LogName               *string      `pulumi:"logName"`
+	PathRegexp            string       `pulumi:"pathRegexp"`
+	Redirect              *WebRedirect `pulumi:"redirect"`
+	Static                *WebStatic   `pulumi:"static"`
+}
+
+// WebHandlerInput is an input type that accepts WebHandlerArgs and WebHandlerOutput values.
+// You can construct a concrete instance of `WebHandlerInput` via:
+//
+//	WebHandlerArgs{...}
+type WebHandlerInput interface {
+	pulumi.Input
+
+	ToWebHandlerOutput() WebHandlerOutput
+	ToWebHandlerOutputWithContext(context.Context) WebHandlerOutput
+}
+
+type WebHandlerArgs struct {
+	Compress              pulumi.BoolPtrInput   `pulumi:"compress"`
+	Domain                pulumi.StringInput    `pulumi:"domain"`
+	DontRedirectPlainHTTP pulumi.BoolPtrInput   `pulumi:"dontRedirectPlainHTTP"`
+	Forward               WebForwardPtrInput    `pulumi:"forward"`
+	Internal              WebInternalPtrInput   `pulumi:"internal"`
+	LogName               pulumi.StringPtrInput `pulumi:"logName"`
+	PathRegexp            pulumi.StringInput    `pulumi:"pathRegexp"`
+	Redirect              WebRedirectPtrInput   `pulumi:"redirect"`
+	Static                WebStaticPtrInput     `pulumi:"static"`
+}
+
+func (WebHandlerArgs) ElementType() reflect.Type {
+	return reflect.TypeOf((*WebHandler)(nil)).Elem()
+}
+
+func (i WebHandlerArgs) ToWebHandlerOutput() WebHandlerOutput {
+	return i.ToWebHandlerOutputWithContext(context.Background())
+}
+
+func (i WebHandlerArgs) ToWebHandlerOutputWithContext(ctx context.Context) WebHandlerOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(WebHandlerOutput)
+}
+
+// WebHandlerArrayInput is an input type that accepts WebHandlerArray and WebHandlerArrayOutput values.
+// You can construct a concrete instance of `WebHandlerArrayInput` via:
+//
+//	WebHandlerArray{ WebHandlerArgs{...} }
+type WebHandlerArrayInput interface {
+	pulumi.Input
+
+	ToWebHandlerArrayOutput() WebHandlerArrayOutput
+	ToWebHandlerArrayOutputWithContext(context.Context) WebHandlerArrayOutput
+}
+
+type WebHandlerArray []WebHandlerInput
+
+func (WebHandlerArray) ElementType() reflect.Type {
+	return reflect.TypeOf((*[]WebHandler)(nil)).Elem()
+}
+
+func (i WebHandlerArray) ToWebHandlerArrayOutput() WebHandlerArrayOutput {
+	return i.ToWebHandlerArrayOutputWithContext(context.Background())
+}
+
+func (i WebHandlerArray) ToWebHandlerArrayOutputWithContext(ctx context.Context) WebHandlerArrayOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(WebHandlerArrayOutput)
+}
+
+type WebHandlerOutput struct{ *pulumi.OutputState }
+
+func (WebHandlerOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((*WebHandler)(nil)).Elem()
+}
+
+func (o WebHandlerOutput) ToWebHandlerOutput() WebHandlerOutput {
+	return o
+}
+
+func (o WebHandlerOutput) ToWebHandlerOutputWithContext(ctx context.Context) WebHandlerOutput {
+	return o
+}
+
+func (o WebHandlerOutput) Compress() pulumi.BoolPtrOutput {
+	return o.ApplyT(func(v WebHandler) *bool { return v.Compress }).(pulumi.BoolPtrOutput)
+}
+
+func (o WebHandlerOutput) Domain() pulumi.StringOutput {
+	return o.ApplyT(func(v WebHandler) string { return v.Domain }).(pulumi.StringOutput)
+}
+
+func (o WebHandlerOutput) DontRedirectPlainHTTP() pulumi.BoolPtrOutput {
+	return o.ApplyT(func(v WebHandler) *bool { return v.DontRedirectPlainHTTP }).(pulumi.BoolPtrOutput)
+}
+
+func (o WebHandlerOutput) Forward() WebForwardPtrOutput {
+	return o.ApplyT(func(v WebHandler) *WebForward { return v.Forward }).(WebForwardPtrOutput)
+}
+
+func (o WebHandlerOutput) Internal() WebInternalPtrOutput {
+	return o.ApplyT(func(v WebHandler) *WebInternal { return v.Internal }).(WebInternalPtrOutput)
+}
+
+func (o WebHandlerOutput) LogName() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v WebHandler) *string { return v.LogName }).(pulumi.StringPtrOutput)
+}
+
+func (o WebHandlerOutput) PathRegexp() pulumi.StringOutput {
+	return o.ApplyT(func(v WebHandler) string { return v.PathRegexp }).(pulumi.StringOutput)
+}
+
+func (o WebHandlerOutput) Redirect() WebRedirectPtrOutput {
+	return o.ApplyT(func(v WebHandler) *WebRedirect { return v.Redirect }).(WebRedirectPtrOutput)
+}
+
+func (o WebHandlerOutput) Static() WebStaticPtrOutput {
+	return o.ApplyT(func(v WebHandler) *WebStatic { return v.Static }).(WebStaticPtrOutput)
+}
+
+type WebHandlerArrayOutput struct{ *pulumi.OutputState }
+
+func (WebHandlerArrayOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((*[]WebHandler)(nil)).Elem()
+}
+
+func (o WebHandlerArrayOutput) ToWebHandlerArrayOutput() WebHandlerArrayOutput {
+	return o
+}
+
+func (o WebHandlerArrayOutput) ToWebHandlerArrayOutputWithContext(ctx context.Context) WebHandlerArrayOutput {
+	return o
+}
+
+func (o WebHandlerArrayOutput) Index(i pulumi.IntInput) WebHandlerOutput {
+	return pulumi.All(o, i).ApplyT(func(vs []interface{}) WebHandler {
+		return vs[0].([]WebHandler)[vs[1].(int)]
+	}).(WebHandlerOutput)
+}
+
+type WebInternal struct {
+	BasePath string `pulumi:"basePath"`
+	Service  string `pulumi:"service"`
+}
+
+// WebInternalInput is an input type that accepts WebInternalArgs and WebInternalOutput values.
+// You can construct a concrete instance of `WebInternalInput` via:
+//
+//	WebInternalArgs{...}
+type WebInternalInput interface {
+	pulumi.Input
+
+	ToWebInternalOutput() WebInternalOutput
+	ToWebInternalOutputWithContext(context.Context) WebInternalOutput
+}
+
+type WebInternalArgs struct {
+	BasePath pulumi.StringInput `pulumi:"basePath"`
+	Service  pulumi.StringInput `pulumi:"service"`
+}
+
+func (WebInternalArgs) ElementType() reflect.Type {
+	return reflect.TypeOf((*WebInternal)(nil)).Elem()
+}
+
+func (i WebInternalArgs) ToWebInternalOutput() WebInternalOutput {
+	return i.ToWebInternalOutputWithContext(context.Background())
+}
+
+func (i WebInternalArgs) ToWebInternalOutputWithContext(ctx context.Context) WebInternalOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(WebInternalOutput)
+}
+
+func (i WebInternalArgs) ToWebInternalPtrOutput() WebInternalPtrOutput {
+	return i.ToWebInternalPtrOutputWithContext(context.Background())
+}
+
+func (i WebInternalArgs) ToWebInternalPtrOutputWithContext(ctx context.Context) WebInternalPtrOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(WebInternalOutput).ToWebInternalPtrOutputWithContext(ctx)
+}
+
+// WebInternalPtrInput is an input type that accepts WebInternalArgs, WebInternalPtr and WebInternalPtrOutput values.
+// You can construct a concrete instance of `WebInternalPtrInput` via:
+//
+//	        WebInternalArgs{...}
+//
+//	or:
+//
+//	        nil
+type WebInternalPtrInput interface {
+	pulumi.Input
+
+	ToWebInternalPtrOutput() WebInternalPtrOutput
+	ToWebInternalPtrOutputWithContext(context.Context) WebInternalPtrOutput
+}
+
+type webInternalPtrType WebInternalArgs
+
+func WebInternalPtr(v *WebInternalArgs) WebInternalPtrInput {
+	return (*webInternalPtrType)(v)
+}
+
+func (*webInternalPtrType) ElementType() reflect.Type {
+	return reflect.TypeOf((**WebInternal)(nil)).Elem()
+}
+
+func (i *webInternalPtrType) ToWebInternalPtrOutput() WebInternalPtrOutput {
+	return i.ToWebInternalPtrOutputWithContext(context.Background())
+}
+
+func (i *webInternalPtrType) ToWebInternalPtrOutputWithContext(ctx context.Context) WebInternalPtrOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(WebInternalPtrOutput)
+}
+
+type WebInternalOutput struct{ *pulumi.OutputState }
+
+func (WebInternalOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((*WebInternal)(nil)).Elem()
+}
+
+func (o WebInternalOutput) ToWebInternalOutput() WebInternalOutput {
+	return o
+}
+
+func (o WebInternalOutput) ToWebInternalOutputWithContext(ctx context.Context) WebInternalOutput {
+	return o
+}
+
+func (o WebInternalOutput) ToWebInternalPtrOutput() WebInternalPtrOutput {
+	return o.ToWebInternalPtrOutputWithContext(context.Background())
+}
+
+func (o WebInternalOutput) ToWebInternalPtrOutputWithContext(ctx context.Context) WebInternalPtrOutput {
+	return o.ApplyTWithContext(ctx, func(_ context.Context, v WebInternal) *WebInternal {
+		return &v
+	}).(WebInternalPtrOutput)
+}
+
+func (o WebInternalOutput) BasePath() pulumi.StringOutput {
+	return o.ApplyT(func(v WebInternal) string { return v.BasePath }).(pulumi.StringOutput)
+}
+
+func (o WebInternalOutput) Service() pulumi.StringOutput {
+	return o.ApplyT(func(v WebInternal) string { return v.Service }).(pulumi.StringOutput)
+}
+
+type WebInternalPtrOutput struct{ *pulumi.OutputState }
+
+func (WebInternalPtrOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((**WebInternal)(nil)).Elem()
+}
+
+func (o WebInternalPtrOutput) ToWebInternalPtrOutput() WebInternalPtrOutput {
+	return o
+}
+
+func (o WebInternalPtrOutput) ToWebInternalPtrOutputWithContext(ctx context.Context) WebInternalPtrOutput {
+	return o
+}
+
+func (o WebInternalPtrOutput) Elem() WebInternalOutput {
+	return o.ApplyT(func(v *WebInternal) WebInternal {
+		if v != nil {
+			return *v
+		}
+		var ret WebInternal
+		return ret
+	}).(WebInternalOutput)
+}
+
+func (o WebInternalPtrOutput) BasePath() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *WebInternal) *string {
+		if v == nil {
+			return nil
+		}
+		return &v.BasePath
+	}).(pulumi.StringPtrOutput)
+}
+
+func (o WebInternalPtrOutput) Service() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *WebInternal) *string {
+		if v == nil {
+			return nil
+		}
+		return &v.Service
+	}).(pulumi.StringPtrOutput)
+}
+
+type WebRedirect struct {
+	BaseUrl        *string `pulumi:"baseUrl"`
+	OrigPathRegexp *string `pulumi:"origPathRegexp"`
+	ReplacePath    *string `pulumi:"replacePath"`
+	StatusCode     *int    `pulumi:"statusCode"`
+}
+
+// WebRedirectInput is an input type that accepts WebRedirectArgs and WebRedirectOutput values.
+// You can construct a concrete instance of `WebRedirectInput` via:
+//
+//	WebRedirectArgs{...}
+type WebRedirectInput interface {
+	pulumi.Input
+
+	ToWebRedirectOutput() WebRedirectOutput
+	ToWebRedirectOutputWithContext(context.Context) WebRedirectOutput
+}
+
+type WebRedirectArgs struct {
+	BaseUrl        pulumi.StringPtrInput `pulumi:"baseUrl"`
+	OrigPathRegexp pulumi.StringPtrInput `pulumi:"origPathRegexp"`
+	ReplacePath    pulumi.StringPtrInput `pulumi:"replacePath"`
+	StatusCode     pulumi.IntPtrInput    `pulumi:"statusCode"`
+}
+
+func (WebRedirectArgs) ElementType() reflect.Type {
+	return reflect.TypeOf((*WebRedirect)(nil)).Elem()
+}
+
+func (i WebRedirectArgs) ToWebRedirectOutput() WebRedirectOutput {
+	return i.ToWebRedirectOutputWithContext(context.Background())
+}
+
+func (i WebRedirectArgs) ToWebRedirectOutputWithContext(ctx context.Context) WebRedirectOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(WebRedirectOutput)
+}
+
+func (i WebRedirectArgs) ToWebRedirectPtrOutput() WebRedirectPtrOutput {
+	return i.ToWebRedirectPtrOutputWithContext(context.Background())
+}
+
+func (i WebRedirectArgs) ToWebRedirectPtrOutputWithContext(ctx context.Context) WebRedirectPtrOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(WebRedirectOutput).ToWebRedirectPtrOutputWithContext(ctx)
+}
+
+// WebRedirectPtrInput is an input type that accepts WebRedirectArgs, WebRedirectPtr and WebRedirectPtrOutput values.
+// You can construct a concrete instance of `WebRedirectPtrInput` via:
+//
+//	        WebRedirectArgs{...}
+//
+//	or:
+//
+//	        nil
+type WebRedirectPtrInput interface {
+	pulumi.Input
+
+	ToWebRedirectPtrOutput() WebRedirectPtrOutput
+	ToWebRedirectPtrOutputWithContext(context.Context) WebRedirectPtrOutput
+}
+
+type webRedirectPtrType WebRedirectArgs
+
+func WebRedirectPtr(v *WebRedirectArgs) WebRedirectPtrInput {
+	return (*webRedirectPtrType)(v)
+}
+
+func (*webRedirectPtrType) ElementType() reflect.Type {
+	return reflect.TypeOf((**WebRedirect)(nil)).Elem()
+}
+
+func (i *webRedirectPtrType) ToWebRedirectPtrOutput() WebRedirectPtrOutput {
+	return i.ToWebRedirectPtrOutputWithContext(context.Background())
+}
+
+func (i *webRedirectPtrType) ToWebRedirectPtrOutputWithContext(ctx context.Context) WebRedirectPtrOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(WebRedirectPtrOutput)
+}
+
+type WebRedirectOutput struct{ *pulumi.OutputState }
+
+func (WebRedirectOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((*WebRedirect)(nil)).Elem()
+}
+
+func (o WebRedirectOutput) ToWebRedirectOutput() WebRedirectOutput {
+	return o
+}
+
+func (o WebRedirectOutput) ToWebRedirectOutputWithContext(ctx context.Context) WebRedirectOutput {
+	return o
+}
+
+func (o WebRedirectOutput) ToWebRedirectPtrOutput() WebRedirectPtrOutput {
+	return o.ToWebRedirectPtrOutputWithContext(context.Background())
+}
+
+func (o WebRedirectOutput) ToWebRedirectPtrOutputWithContext(ctx context.Context) WebRedirectPtrOutput {
+	return o.ApplyTWithContext(ctx, func(_ context.Context, v WebRedirect) *WebRedirect {
+		return &v
+	}).(WebRedirectPtrOutput)
+}
+
+func (o WebRedirectOutput) BaseUrl() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v WebRedirect) *string { return v.BaseUrl }).(pulumi.StringPtrOutput)
+}
+
+func (o WebRedirectOutput) OrigPathRegexp() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v WebRedirect) *string { return v.OrigPathRegexp }).(pulumi.StringPtrOutput)
+}
+
+func (o WebRedirectOutput) ReplacePath() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v WebRedirect) *string { return v.ReplacePath }).(pulumi.StringPtrOutput)
+}
+
+func (o WebRedirectOutput) StatusCode() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v WebRedirect) *int { return v.StatusCode }).(pulumi.IntPtrOutput)
+}
+
+type WebRedirectPtrOutput struct{ *pulumi.OutputState }
+
+func (WebRedirectPtrOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((**WebRedirect)(nil)).Elem()
+}
+
+func (o WebRedirectPtrOutput) ToWebRedirectPtrOutput() WebRedirectPtrOutput {
+	return o
+}
+
+func (o WebRedirectPtrOutput) ToWebRedirectPtrOutputWithContext(ctx context.Context) WebRedirectPtrOutput {
+	return o
+}
+
+func (o WebRedirectPtrOutput) Elem() WebRedirectOutput {
+	return o.ApplyT(func(v *WebRedirect) WebRedirect {
+		if v != nil {
+			return *v
+		}
+		var ret WebRedirect
+		return ret
+	}).(WebRedirectOutput)
+}
+
+func (o WebRedirectPtrOutput) BaseUrl() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *WebRedirect) *string {
+		if v == nil {
+			return nil
+		}
+		return v.BaseUrl
+	}).(pulumi.StringPtrOutput)
+}
+
+func (o WebRedirectPtrOutput) OrigPathRegexp() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *WebRedirect) *string {
+		if v == nil {
+			return nil
+		}
+		return v.OrigPathRegexp
+	}).(pulumi.StringPtrOutput)
+}
+
+func (o WebRedirectPtrOutput) ReplacePath() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *WebRedirect) *string {
+		if v == nil {
+			return nil
+		}
+		return v.ReplacePath
+	}).(pulumi.StringPtrOutput)
+}
+
+func (o WebRedirectPtrOutput) StatusCode() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v *WebRedirect) *int {
+		if v == nil {
+			return nil
+		}
+		return v.StatusCode
+	}).(pulumi.IntPtrOutput)
+}
+
+type WebStatic struct {
+	ContinueNotFound *bool             `pulumi:"continueNotFound"`
+	ListFiles        *bool             `pulumi:"listFiles"`
+	ResponseHeaders  map[string]string `pulumi:"responseHeaders"`
+	Root             string            `pulumi:"root"`
+	StripPrefix      *string           `pulumi:"stripPrefix"`
+}
+
+// WebStaticInput is an input type that accepts WebStaticArgs and WebStaticOutput values.
+// You can construct a concrete instance of `WebStaticInput` via:
+//
+//	WebStaticArgs{...}
+type WebStaticInput interface {
+	pulumi.Input
+
+	ToWebStaticOutput() WebStaticOutput
+	ToWebStaticOutputWithContext(context.Context) WebStaticOutput
+}
+
+type WebStaticArgs struct {
+	ContinueNotFound pulumi.BoolPtrInput   `pulumi:"continueNotFound"`
+	ListFiles        pulumi.BoolPtrInput   `pulumi:"listFiles"`
+	ResponseHeaders  pulumi.StringMapInput `pulumi:"responseHeaders"`
+	Root             pulumi.StringInput    `pulumi:"root"`
+	StripPrefix      pulumi.StringPtrInput `pulumi:"stripPrefix"`
+}
+
+func (WebStaticArgs) ElementType() reflect.Type {
+	return reflect.TypeOf((*WebStatic)(nil)).Elem()
+}
+
+func (i WebStaticArgs) ToWebStaticOutput() WebStaticOutput {
+	return i.ToWebStaticOutputWithContext(context.Background())
+}
+
+func (i WebStaticArgs) ToWebStaticOutputWithContext(ctx context.Context) WebStaticOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(WebStaticOutput)
+}
+
+func (i WebStaticArgs) ToWebStaticPtrOutput() WebStaticPtrOutput {
+	return i.ToWebStaticPtrOutputWithContext(context.Background())
+}
+
+func (i WebStaticArgs) ToWebStaticPtrOutputWithContext(ctx context.Context) WebStaticPtrOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(WebStaticOutput).ToWebStaticPtrOutputWithContext(ctx)
+}
+
+// WebStaticPtrInput is an input type that accepts WebStaticArgs, WebStaticPtr and WebStaticPtrOutput values.
+// You can construct a concrete instance of `WebStaticPtrInput` via:
+//
+//	        WebStaticArgs{...}
+//
+//	or:
+//
+//	        nil
+type WebStaticPtrInput interface {
+	pulumi.Input
+
+	ToWebStaticPtrOutput() WebStaticPtrOutput
+	ToWebStaticPtrOutputWithContext(context.Context) WebStaticPtrOutput
+}
+
+type webStaticPtrType WebStaticArgs
+
+func WebStaticPtr(v *WebStaticArgs) WebStaticPtrInput {
+	return (*webStaticPtrType)(v)
+}
+
+func (*webStaticPtrType) ElementType() reflect.Type {
+	return reflect.TypeOf((**WebStatic)(nil)).Elem()
+}
+
+func (i *webStaticPtrType) ToWebStaticPtrOutput() WebStaticPtrOutput {
+	return i.ToWebStaticPtrOutputWithContext(context.Background())
+}
+
+func (i *webStaticPtrType) ToWebStaticPtrOutputWithContext(ctx context.Context) WebStaticPtrOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(WebStaticPtrOutput)
+}
+
+type WebStaticOutput struct{ *pulumi.OutputState }
+
+func (WebStaticOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((*WebStatic)(nil)).Elem()
+}
+
+func (o WebStaticOutput) ToWebStaticOutput() WebStaticOutput {
+	return o
+}
+
+func (o WebStaticOutput) ToWebStaticOutputWithContext(ctx context.Context) WebStaticOutput {
+	return o
+}
+
+func (o WebStaticOutput) ToWebStaticPtrOutput() WebStaticPtrOutput {
+	return o.ToWebStaticPtrOutputWithContext(context.Background())
+}
+
+func (o WebStaticOutput) ToWebStaticPtrOutputWithContext(ctx context.Context) WebStaticPtrOutput {
+	return o.ApplyTWithContext(ctx, func(_ context.Context, v WebStatic) *WebStatic {
+		return &v
+	}).(WebStaticPtrOutput)
+}
+
+func (o WebStaticOutput) ContinueNotFound() pulumi.BoolPtrOutput {
+	return o.ApplyT(func(v WebStatic) *bool { return v.ContinueNotFound }).(pulumi.BoolPtrOutput)
+}
+
+func (o WebStaticOutput) ListFiles() pulumi.BoolPtrOutput {
+	return o.ApplyT(func(v WebStatic) *bool { return v.ListFiles }).(pulumi.BoolPtrOutput)
+}
+
+func (o WebStaticOutput) ResponseHeaders() pulumi.StringMapOutput {
+	return o.ApplyT(func(v WebStatic) map[string]string { return v.ResponseHeaders }).(pulumi.StringMapOutput)
+}
+
+func (o WebStaticOutput) Root() pulumi.StringOutput {
+	return o.ApplyT(func(v WebStatic) string { return v.Root }).(pulumi.StringOutput)
+}
+
+func (o WebStaticOutput) StripPrefix() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v WebStatic) *string { return v.StripPrefix }).(pulumi.StringPtrOutput)
+}
+
+type WebStaticPtrOutput struct{ *pulumi.OutputState }
+
+func (WebStaticPtrOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((**WebStatic)(nil)).Elem()
+}
+
+func (o WebStaticPtrOutput) ToWebStaticPtrOutput() WebStaticPtrOutput {
+	return o
+}
+
+func (o WebStaticPtrOutput) ToWebStaticPtrOutputWithContext(ctx context.Context) WebStaticPtrOutput {
+	return o
+}
+
+func (o WebStaticPtrOutput) Elem() WebStaticOutput {
+	return o.ApplyT(func(v *WebStatic) WebStatic {
+		if v != nil {
+			return *v
+		}
+		var ret WebStatic
+		return ret
+	}).(WebStaticOutput)
+}
+
+func (o WebStaticPtrOutput) ContinueNotFound() pulumi.BoolPtrOutput {
+	return o.ApplyT(func(v *WebStatic) *bool {
+		if v == nil {
+			return nil
+		}
+		return v.ContinueNotFound
+	}).(pulumi.BoolPtrOutput)
+}
+
+func (o WebStaticPtrOutput) ListFiles() pulumi.BoolPtrOutput {
+	return o.ApplyT(func(v *WebStatic) *bool {
+		if v == nil {
+			return nil
+		}
+		return v.ListFiles
+	}).(pulumi.BoolPtrOutput)
+}
+
+func (o WebStaticPtrOutput) ResponseHeaders() pulumi.StringMapOutput {
+	return o.ApplyT(func(v *WebStatic) map[string]string {
+		if v == nil {
+			return nil
+		}
+		return v.ResponseHeaders
+	}).(pulumi.StringMapOutput)
+}
+
+func (o WebStaticPtrOutput) Root() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *WebStatic) *string {
+		if v == nil {
+			return nil
+		}
+		return &v.Root
+	}).(pulumi.StringPtrOutput)
+}
+
+func (o WebStaticPtrOutput) StripPrefix() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *WebStatic) *string {
+		if v == nil {
+			return nil
+		}
+		return v.StripPrefix
+	}).(pulumi.StringPtrOutput)
+}
+
 func init() {
 	pulumi.RegisterInputType(reflect.TypeOf((*AccountRouteInput)(nil)).Elem(), AccountRouteArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*AccountRouteArrayInput)(nil)).Elem(), AccountRouteArray{})
@@ -925,6 +1855,18 @@ func init() {
 	pulumi.RegisterInputType(reflect.TypeOf((*DomainReportAddressPtrInput)(nil)).Elem(), DomainReportAddressArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*DomainSieveInput)(nil)).Elem(), DomainSieveArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*DomainSievePtrInput)(nil)).Elem(), DomainSieveArgs{})
+	pulumi.RegisterInputType(reflect.TypeOf((*WebDomainRedirectInput)(nil)).Elem(), WebDomainRedirectArgs{})
+	pulumi.RegisterInputType(reflect.TypeOf((*WebDomainRedirectArrayInput)(nil)).Elem(), WebDomainRedirectArray{})
+	pulumi.RegisterInputType(reflect.TypeOf((*WebForwardInput)(nil)).Elem(), WebForwardArgs{})
+	pulumi.RegisterInputType(reflect.TypeOf((*WebForwardPtrInput)(nil)).Elem(), WebForwardArgs{})
+	pulumi.RegisterInputType(reflect.TypeOf((*WebHandlerInput)(nil)).Elem(), WebHandlerArgs{})
+	pulumi.RegisterInputType(reflect.TypeOf((*WebHandlerArrayInput)(nil)).Elem(), WebHandlerArray{})
+	pulumi.RegisterInputType(reflect.TypeOf((*WebInternalInput)(nil)).Elem(), WebInternalArgs{})
+	pulumi.RegisterInputType(reflect.TypeOf((*WebInternalPtrInput)(nil)).Elem(), WebInternalArgs{})
+	pulumi.RegisterInputType(reflect.TypeOf((*WebRedirectInput)(nil)).Elem(), WebRedirectArgs{})
+	pulumi.RegisterInputType(reflect.TypeOf((*WebRedirectPtrInput)(nil)).Elem(), WebRedirectArgs{})
+	pulumi.RegisterInputType(reflect.TypeOf((*WebStaticInput)(nil)).Elem(), WebStaticArgs{})
+	pulumi.RegisterInputType(reflect.TypeOf((*WebStaticPtrInput)(nil)).Elem(), WebStaticArgs{})
 	pulumi.RegisterOutputType(AccountRouteOutput{})
 	pulumi.RegisterOutputType(AccountRouteArrayOutput{})
 	pulumi.RegisterOutputType(DkimDNSRecordOutput{})
@@ -937,4 +1879,16 @@ func init() {
 	pulumi.RegisterOutputType(DomainReportAddressPtrOutput{})
 	pulumi.RegisterOutputType(DomainSieveOutput{})
 	pulumi.RegisterOutputType(DomainSievePtrOutput{})
+	pulumi.RegisterOutputType(WebDomainRedirectOutput{})
+	pulumi.RegisterOutputType(WebDomainRedirectArrayOutput{})
+	pulumi.RegisterOutputType(WebForwardOutput{})
+	pulumi.RegisterOutputType(WebForwardPtrOutput{})
+	pulumi.RegisterOutputType(WebHandlerOutput{})
+	pulumi.RegisterOutputType(WebHandlerArrayOutput{})
+	pulumi.RegisterOutputType(WebInternalOutput{})
+	pulumi.RegisterOutputType(WebInternalPtrOutput{})
+	pulumi.RegisterOutputType(WebRedirectOutput{})
+	pulumi.RegisterOutputType(WebRedirectPtrOutput{})
+	pulumi.RegisterOutputType(WebStaticOutput{})
+	pulumi.RegisterOutputType(WebStaticPtrOutput{})
 }

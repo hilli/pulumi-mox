@@ -1,0 +1,157 @@
+name: mox-advanced-example
+runtime: yaml
+description: Advanced example for the native mox provider.
+
+# This example demonstrates richer provider capabilities than the localserve
+# smoke test. It assumes your mox static config already defines any named
+# transports referenced by routes, because transports live in mox.conf and are
+# read-only through the admin API.
+#
+# Provider config is set on the stack:
+#   pulumi config set mox:adminUrl https://mox-admin.example.com
+#   pulumi config set --secret mox:adminPassword <password>
+
+variables:
+  updateCheck:
+    fn::invoke:
+      function: mox:index:getCheckUpdatesEnabled
+      arguments: {}
+
+resources:
+  example:
+    type: mox:Domain
+    properties:
+      domain: example.com
+      account: postmaster
+      description: Primary example mail domain
+      localpartConfig:
+        catchallSeparators:
+          - +
+        caseSensitive: false
+      dmarc:
+        localpart: dmarcreports
+        account: ${example.account}
+        mailbox: DMARC
+      tlsRpt:
+        localpart: tlsreports
+        account: ${example.account}
+        mailbox: TLSRPT
+      mtaSts:
+        policyId: "20260617"
+        mode: enforce
+        maxAgeSeconds: 604800
+        mx:
+          - mail.example.com
+      sieve:
+        enabled: true
+        autoCreateMailboxes: true
+        runOnDelivery: true
+      routes:
+        - toDomains:
+            - .partner.example
+          minimumAttempts: 2
+          transport: partner-relay
+
+  app:
+    type: mox:Account
+    properties:
+      account: app
+      address: app@${example.domain}
+      maxOutgoingMessagesPerDay: 200
+      maxFirstTimeRecipientsPerDay: 50
+      maxMessageSize: 10485760
+      firstTimeSenderDelay: false
+      noCustomPassword: true
+      routes:
+        - fromDomains:
+            - ${example.domain}
+          transport: app-smarthost
+
+  supportAddress:
+    type: mox:Address
+    properties:
+      address: support@${example.domain}
+      account: ${app.account}
+
+  announcements:
+    type: mox:Alias
+    properties:
+      address: announcements@${example.domain}
+      members:
+        - ${app.address}
+      postPublic: false
+      listMembers: true
+      allowMsgFrom: true
+
+  filing:
+    type: mox:Sieve
+    properties:
+      account: ${app.account}
+      name: filing
+      active: true
+      content: |
+        require ["fileinto"];
+        if header :contains "list-id" "alerts.example.com" {
+          fileinto "Alerts";
+        }
+
+  globalRoutes:
+    type: mox:GlobalRoutes
+    properties:
+      routes:
+        - toDomains:
+            - .example.net
+          minimumAttempts: 3
+          transport: backup-smarthost
+
+  webserver:
+    type: mox:WebserverConfig
+    properties:
+      redirects:
+        - from: oldmail.example.com
+          to: mail.example.com
+      handlers:
+        - logName: webmail
+          domain: mail.example.com
+          pathRegexp: ^/webmail/
+          internal:
+            basePath: /webmail/
+            service: webmail
+        - logName: app-proxy
+          domain: app.example.com
+          pathRegexp: ^/
+          compress: true
+          forward:
+            url: http://127.0.0.1:3000
+            responseHeaders:
+              x-frame-options: DENY
+        - logName: static-assets
+          domain: static.example.com
+          pathRegexp: ^/
+          static:
+            root: /srv/example-static
+            listFiles: false
+            responseHeaders:
+              cache-control: public, max-age=3600
+
+  webadminDebug:
+    type: mox:LogLevel
+    properties:
+      package: webadmin
+      level: debug
+
+  dnsblMonitoring:
+    type: mox:DNSBLMonitoring
+    properties:
+      zones:
+        - sbl.spamhaus.org
+        - bl.spamcop.net
+
+outputs:
+  dkimRecords: ${example.dkimRecords}
+  generatedPassword: ${app.effectivePassword}
+  supportAddress: ${supportAddress.address}
+  aliasAddress: ${announcements.address}
+  webHandlers: ${webserver.handlers}
+  dnsblZones: ${dnsblMonitoring.zones}
+  checkUpdatesEnabled: ${updateCheck.enabled}

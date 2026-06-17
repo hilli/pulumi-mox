@@ -25,6 +25,7 @@ workdir="$(mktemp -d)"
 mox_pid=""
 mox_started=0
 stack_inited=0
+pulumi_yaml_backup=""
 
 log() { printf '==> %s\n' "$*"; }
 
@@ -45,6 +46,9 @@ cleanup() {
   if [ "$stack_inited" = "1" ]; then
     ( cd "$here" && pulumi destroy --yes -s "$STACK" )
     ( cd "$here" && pulumi stack rm --yes -s "$STACK" )
+  fi
+  if [ -n "$pulumi_yaml_backup" ] && [ -f "$pulumi_yaml_backup" ]; then
+    cp "$pulumi_yaml_backup" "$here/Pulumi.yaml"
   fi
   rm -f "$here/Pulumi.$STACK.yaml"
   if [ "$mox_started" = "1" ] && [ -n "$mox_pid" ]; then
@@ -111,6 +115,8 @@ mkdir -p "$workdir/state"
 export PULUMI_BACKEND_URL="file://$workdir/state"
 
 cd "$here"
+pulumi_yaml_backup="$workdir/Pulumi.yaml.orig"
+cp "$here/Pulumi.yaml" "$pulumi_yaml_backup"
 log "pulumi stack init $STACK"
 pulumi stack init "$STACK"
 stack_inited=1
@@ -120,11 +126,19 @@ pulumi config set --secret mox:adminPassword "$ADMIN_PASSWORD"
 log "pulumi up"
 pulumi up --yes
 
+log "renaming Sieve script through pulumi up"
+perl -0pi -e 's/name: forwarding\n/name: forwarding-renamed\n/' "$here/Pulumi.yaml"
+pulumi up --yes
+
 echo
 log "Domain created. Generated DNS records:"
 pulumi stack output dnsRecords
 echo
 log "Extra account created: $(pulumi stack output testUserAddress)"
 log "Generated account password: $(pulumi stack output testUserPassword --show-secrets)"
+log "Alias created: $(pulumi stack output aliasAddress)"
+log "Web redirects: $(pulumi stack output webRedirects)"
+log "DNSBL monitoring zones: $(pulumi stack output dnsblZones)"
+log "Update checks enabled: $(pulumi stack output checkUpdatesEnabled)"
 echo
 log "e2e OK"

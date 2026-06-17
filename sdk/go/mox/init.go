@@ -27,10 +27,18 @@ func (m *module) Construct(ctx *pulumi.Context, name, typ, urn string) (r pulumi
 		r = &Address{}
 	case "mox:index:Alias":
 		r = &Alias{}
+	case "mox:index:DNSBLMonitoring":
+		r = &DNSBLMonitoring{}
 	case "mox:index:Domain":
 		r = &Domain{}
+	case "mox:index:GlobalRoutes":
+		r = &GlobalRoutes{}
+	case "mox:index:LogLevel":
+		r = &LogLevel{}
 	case "mox:index:Sieve":
 		r = &Sieve{}
+	case "mox:index:WebserverConfig":
+		r = &WebserverConfig{}
 	default:
 		return nil, fmt.Errorf("unknown resource type: %s", typ)
 	}

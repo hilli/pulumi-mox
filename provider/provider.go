@@ -107,6 +107,10 @@ func Provider() (p.Provider, error) {
 			infer.Resource(&Address{}),
 			infer.Resource(&Alias{}),
 			infer.Resource(&Sieve{}),
+			infer.Resource(&GlobalRoutes{}),
+			infer.Resource(&WebserverConfig{}),
+			infer.Resource(&LogLevel{}),
+			infer.Resource(&DNSBLMonitoring{}),
 		).
 		WithFunctions(
 			infer.Function(&GetVersion{}),
@@ -119,6 +123,7 @@ func Provider() (p.Provider, error) {
 			infer.Function(&GetConfigFiles{}),
 			infer.Function(&GetTLSPublicKeys{}),
 			infer.Function(&GetLoginAttempts{}),
+			infer.Function(&GetCheckUpdatesEnabled{}),
 		).
 		Build()
 }

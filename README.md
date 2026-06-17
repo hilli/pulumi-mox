@@ -7,9 +7,11 @@ A native [Pulumi](https://www.pulumi.com/) provider for the
 and **addresses**, and read mox-generated **DNS records** so they can be
 programmed into a DNS provider (e.g. Cloudflare).
 
-> **Status: usable.** This repository compiles, vets cleanly, and ships three
-> fully-wired resources (`Domain`, `Account`, `Address`) with idempotent Create,
-> Read-based drift detection, Update, and Delete. A committed, tagged Go SDK is
+> **Status: usable.** This repository compiles, vets cleanly, and ships fully
+> wired resources for domains, accounts, addresses, aliases, Sieve scripts,
+> global routes, webserver config, log levels, and DNSBL monitoring with
+> idempotent Create, Read-based drift detection, Update, and Delete. A committed,
+> tagged Go SDK is
 > published; other languages are generated on demand (see
 > [Install / use](#install--use)). See [Open items](#open-items) for what
 > remains.
@@ -67,15 +69,23 @@ pulumi package add mox@X.Y.Z
 ```
 provider/
   provider.go                  Config + Provider() builder (infer wiring)
-  domain.go                    Domain resource — full CRUD
-  account.go                   Account resource — full CRUD
+  domain.go                    Domain resource — full CRUD + mutable domain config
+  account.go                   Account resource — full CRUD + account settings/routes
   address.go                   Address resource — full CRUD
+  alias.go                     Alias/mailing-list resource — full CRUD
+  sieve.go                     Account Sieve script resource — full CRUD + rename
+  global_routes.go             Server-level outgoing routes singleton resource
+  webserver_config.go          Web redirects/handlers singleton resource
+  log_level.go                 Package log-level override resource
+  dnsbl_monitoring.go          DNSBL monitoring singleton resource
   cmd/pulumi-resource-mox/
     main.go                    Plugin entrypoint
 internal/moxadmin/
   client.go                    sherpa HTTP client (session/cookie + CSRF)
 examples/yaml/
-  Pulumi.yaml                  Smoke example (mox:Domain + mox:Account + outputs)
+  Pulumi.yaml                  Localserve smoke example used by make e2e
+examples/yaml-advanced/
+  Pulumi.yaml                  Richer reference example for real deployments
 Makefile                       build / install_plugin / gen_sdk / tidy / test
 ```
 
@@ -166,6 +176,53 @@ Inputs: `address`, `account`. Create is idempotent (`AddressAdd`, treating
 "already configured" as success); Read locates the owning account to detect
 drift; Update re-points the address to a new account (remove-then-add with
 rollback); Delete calls `AddressRemove`. The `address` is replace-only.
+
+### `mox:Alias` (fully wired)
+
+Inputs: `address`, `members`, and optional list behavior flags. Create uses
+`AliasAdd`; Read reflects membership and managed settings from `DomainConfig`;
+Update adds/removes members and updates list behavior in place; Delete calls
+`AliasRemove`.
+
+### `mox:Sieve` (fully wired)
+
+Inputs: `account`, `name`, `content`, optional `active`. Create stores and
+optionally activates the script; Read fetches script content and active state;
+Update can rename the script, replace content, and activate/deactivate it;
+Delete deactivates first when needed and removes the script.
+
+### `mox:GlobalRoutes` (fully wired)
+
+Singleton resource for server-level outgoing routes. Inputs: `routes`, using the
+same route shape as account/domain routes. Create/Update call `RoutesSave`; Read
+reflects `Config().Routes`; Delete clears the global route list.
+
+### `mox:WebserverConfig` (fully wired)
+
+Singleton resource for dynamic web redirects and web handlers. Inputs:
+`redirects` (`from`/`to`) and ordered `handlers` (static, redirect, forward, or
+internal). Create/Update use `WebserverConfigSave` with mox's old/current
+optimistic check; Read calls `WebserverConfig`; Delete clears redirects and
+handlers.
+
+### `mox:LogLevel` (fully wired)
+
+Manages one package log-level override. Inputs: `package`, `level`. Create/Update
+call `LogLevelSet`; Read reflects `LogLevels`; Delete calls `LogLevelRemove`.
+Changing `package` replaces the resource.
+
+### `mox:DNSBLMonitoring` (fully wired)
+
+Singleton resource for dynamic DNS blocklists that mox monitors for outgoing IP
+listings without using those DNSBLs for incoming-message rejection. Inputs:
+`zones []string`. Create/Update call `MonitorDNSBLsSave`; Read reflects
+`Config().MonitorDNSBLs`; Delete clears the monitored zone list.
+
+### `getCheckUpdatesEnabled` (read-only)
+
+Returns whether mox's static `CheckUpdates` setting is enabled. Mox exposes this
+through the admin API as `CheckUpdatesEnabled`, but there is no admin API setter:
+the setting lives in `mox.conf`, outside this provider's API-driven write model.
 
 ## Configuration
 
@@ -290,6 +347,14 @@ pulumi config set --secret mox:adminPassword <password>
 pulumi up
 ```
 
+`examples/yaml/Pulumi.yaml` is intentionally localserve-friendly and safe for
+`make e2e`. It exercises every writable resource with values that work against a
+throwaway local server. `examples/yaml-advanced/Pulumi.yaml` shows richer
+real-world shapes: non-empty account/domain/global routes, Sieve activation,
+aliases, web redirects/handlers, log levels, DNSBL monitoring, and the read-only
+update-check invoke. The advanced route examples reference named transports that
+must already exist in static `mox.conf`.
+
 ### Live e2e with `mox localserve`
 
 `make e2e` runs the `examples/yaml` stack against a throwaway, self-contained
@@ -299,10 +364,10 @@ mox backend — no real server or config required. It:
 2. starts an ephemeral `mox localserve` (admin API on `http://localhost:1080`,
    password `moxadmin`) in a temp dir;
 3. stands up the stack against a throwaway `file://` Pulumi backend, runs
-   `pulumi up` (creating `example.com` plus a second `testuser@example.com`
-   account), prints the generated DNS records, the extra account's address, and
-   its provider-generated password, then `pulumi destroy`s and tears the whole
-   thing down.
+   `pulumi up` (creating `example.com`, accounts, an alias, Sieve script,
+   singleton config resources, and read-only invokes), performs a second
+   `pulumi up` to exercise Sieve rename, prints key outputs, then
+   `pulumi destroy`s and tears the whole thing down.
 
 ```sh
 make e2e
@@ -338,4 +403,3 @@ These are left for the implementer:
 Done: idempotent Create (adopt on "already exists"), `Update` for
 Account/Address, `Read` refresh on all resources, and sherpa `user:*` error
 mapping into Pulumi diagnostics.
-

@@ -443,6 +443,15 @@ type Route struct {
 	Transport       string   `json:"Transport"`
 }
 
+// DynamicConfig mirrors the dynamic config fields this provider manages at the
+// server/global scope.
+type DynamicConfig struct {
+	Routes             []Route           `json:"Routes"`
+	WebDomainRedirects map[string]string `json:"WebDomainRedirects"`
+	WebHandlers        []WebHandler      `json:"WebHandlers"`
+	MonitorDNSBLs      []string          `json:"MonitorDNSBLs"`
+}
+
 // Addresses returns the email addresses configured on the account, derived from
 // the Destinations map keys.
 func (a Account) Addresses() []string {
@@ -562,6 +571,30 @@ func (c *Client) AccountRoutesSave(ctx context.Context, accountName string, rout
 	return c.Call(ctx, "AccountRoutesSave", []any{accountName, routes}, nil)
 }
 
+// DynamicConfig returns the server dynamic config fields this provider manages.
+func (c *Client) DynamicConfig(ctx context.Context) (DynamicConfig, error) {
+	var cfg DynamicConfig
+	if err := c.Call(ctx, "Config", []any{}, &cfg); err != nil {
+		return DynamicConfig{}, err
+	}
+	return cfg, nil
+}
+
+// RoutesSave replaces the global outgoing routing rules. A nil/empty slice clears
+// the global routes.
+func (c *Client) RoutesSave(ctx context.Context, routes []Route) error {
+	if routes == nil {
+		routes = []Route{}
+	}
+	return c.Call(ctx, "RoutesSave", []any{routes}, nil)
+}
+
+// MonitorDNSBLsSave replaces the dynamic DNSBL monitoring zones. The admin API
+// accepts one zone per line.
+func (c *Client) MonitorDNSBLsSave(ctx context.Context, zones []string) error {
+	return c.Call(ctx, "MonitorDNSBLsSave", []any{strings.Join(zones, "\n")}, nil)
+}
+
 // Alias mirrors the subset of mox's config.Alias the provider reads and writes.
 // The full mox struct carries additional read-only fields (parsed addresses,
 // localpart string, domain); unknown JSON keys are ignored on read and the
@@ -633,6 +666,57 @@ type DomainConfig struct {
 	Sieve                       *SievePolicy         `json:"Sieve"`
 }
 
+// WebserverConfig is the admin API shape for the dynamic webserver config. Reads
+// populate WebDNSDomainRedirects; saves expect WebDomainRedirects.
+type WebserverConfig struct {
+	WebDNSDomainRedirects [][2]DomainName `json:"WebDNSDomainRedirects"`
+	WebDomainRedirects    [][2]string     `json:"WebDomainRedirects"`
+	WebHandlers           []WebHandler    `json:"WebHandlers"`
+}
+
+// WebHandler mirrors mox's configurable web handler fields.
+type WebHandler struct {
+	LogName               string       `json:"LogName,omitempty"`
+	Domain                string       `json:"Domain"`
+	PathRegexp            string       `json:"PathRegexp"`
+	DontRedirectPlainHTTP bool         `json:"DontRedirectPlainHTTP,omitempty"`
+	Compress              bool         `json:"Compress,omitempty"`
+	WebStatic             *WebStatic   `json:"WebStatic,omitempty"`
+	WebRedirect           *WebRedirect `json:"WebRedirect,omitempty"`
+	WebForward            *WebForward  `json:"WebForward,omitempty"`
+	WebInternal           *WebInternal `json:"WebInternal,omitempty"`
+}
+
+// WebStatic configures a web handler that serves static files.
+type WebStatic struct {
+	StripPrefix      string            `json:"StripPrefix,omitempty"`
+	Root             string            `json:"Root"`
+	ListFiles        bool              `json:"ListFiles,omitempty"`
+	ContinueNotFound bool              `json:"ContinueNotFound,omitempty"`
+	ResponseHeaders  map[string]string `json:"ResponseHeaders,omitempty"`
+}
+
+// WebRedirect configures a web handler that redirects requests.
+type WebRedirect struct {
+	BaseURL        string `json:"BaseURL,omitempty"`
+	OrigPathRegexp string `json:"OrigPathRegexp,omitempty"`
+	ReplacePath    string `json:"ReplacePath,omitempty"`
+	StatusCode     int    `json:"StatusCode,omitempty"`
+}
+
+// WebForward configures a web handler that reverse-proxies requests.
+type WebForward struct {
+	StripPath       bool              `json:"StripPath,omitempty"`
+	URL             string            `json:"URL"`
+	ResponseHeaders map[string]string `json:"ResponseHeaders,omitempty"`
+}
+
+// WebInternal configures a web handler that serves an internal mox service.
+type WebInternal struct {
+	BasePath string `json:"BasePath"`
+	Service  string `json:"Service"`
+}
+
 // Alias returns the alias with the given localpart, matching case-insensitively,
 // and whether it was found.
 func (d DomainConfig) Alias(localpart string) (Alias, bool) {
@@ -662,6 +746,53 @@ func (c *Client) DomainConfig(ctx context.Context, domain string) (DomainConfig,
 // the override.
 func (c *Client) DomainSieveSave(ctx context.Context, domain string, sieve *SievePolicy) error {
 	return c.Call(ctx, "DomainSieveSave", []any{domain, sieve}, nil)
+}
+
+// WebserverConfig returns the current dynamic webserver redirects and handlers.
+func (c *Client) WebserverConfig(ctx context.Context) (WebserverConfig, error) {
+	var cfg WebserverConfig
+	if err := c.Call(ctx, "WebserverConfig", []any{}, &cfg); err != nil {
+		return WebserverConfig{}, err
+	}
+	return cfg, nil
+}
+
+// WebserverConfigSave replaces dynamic webserver redirects and handlers using
+// mox's optimistic old/current comparison.
+func (c *Client) WebserverConfigSave(ctx context.Context, oldConf, newConf WebserverConfig) (WebserverConfig, error) {
+	var saved WebserverConfig
+	if err := c.Call(ctx, "WebserverConfigSave", []any{oldConf, newConf}, &saved); err != nil {
+		return WebserverConfig{}, err
+	}
+	return saved, nil
+}
+
+// LogLevels returns the currently configured package log levels.
+func (c *Client) LogLevels(ctx context.Context) (map[string]string, error) {
+	var levels map[string]string
+	if err := c.Call(ctx, "LogLevels", []any{}, &levels); err != nil {
+		return nil, err
+	}
+	return levels, nil
+}
+
+// LogLevelSet sets a package log level.
+func (c *Client) LogLevelSet(ctx context.Context, pkg, level string) error {
+	return c.Call(ctx, "LogLevelSet", []any{pkg, level}, nil)
+}
+
+// LogLevelRemove removes a configured package log level.
+func (c *Client) LogLevelRemove(ctx context.Context, pkg string) error {
+	return c.Call(ctx, "LogLevelRemove", []any{pkg}, nil)
+}
+
+// CheckUpdatesEnabled reports the static mox.conf update-check setting.
+func (c *Client) CheckUpdatesEnabled(ctx context.Context) (bool, error) {
+	var enabled bool
+	if err := c.Call(ctx, "CheckUpdatesEnabled", []any{}, &enabled); err != nil {
+		return false, err
+	}
+	return enabled, nil
 }
 
 // AliasAdd creates an alias for the given localpart and domain.
@@ -766,6 +897,11 @@ func (c *Client) AccountSievePutScript(ctx context.Context, accountName, name, c
 // cannot be deleted; deactivate it first with AccountSieveSetActive(name="").
 func (c *Client) AccountSieveDeleteScript(ctx context.Context, accountName, name string) error {
 	return c.Call(ctx, "AccountSieveDeleteScript", []any{accountName, name}, nil)
+}
+
+// AccountSieveRenameScript renames a Sieve script within an account.
+func (c *Client) AccountSieveRenameScript(ctx context.Context, accountName, oldName, newName string) error {
+	return c.Call(ctx, "AccountSieveRenameScript", []any{accountName, oldName, newName}, nil)
 }
 
 // AccountSieveSetActive sets the active Sieve script for an account. Passing an

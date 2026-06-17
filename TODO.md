@@ -15,7 +15,8 @@ Accounts: `AccountAdd`, `AccountRemove`, `Accounts`, `Account`, `SetPassword`.
 Addresses: `AddressAdd`, `AddressRemove`.
 
 Resources today: `mox:Domain`, `mox:Account`, `mox:Address`, `mox:Alias`,
-`mox:Sieve` (all full CRUD).
+`mox:Sieve`, `mox:GlobalRoutes`, `mox:WebserverConfig`, `mox:LogLevel`,
+`mox:DNSBLMonitoring` (all full CRUD).
 
 ---
 
@@ -31,7 +32,7 @@ forwarding) with a single active script per account. Modelled as a dedicated
 - [x] `AccountSieveSetActive(accountName, name)` — activate (empty name
       deactivates), exposed as the `active` field.
 - [x] `AccountSieveDeleteScript(accountName, name)` — Delete (deactivates first).
-- [ ] `AccountSieveRenameScript` — not wrapped; name changes force a replacement.
+- [x] `AccountSieveRenameScript` — Update renames scripts in place.
 
 ---
 
@@ -81,6 +82,35 @@ resource.
 - [x] `DomainDisabledSave` — enable/disable a domain without removing it
       (`disabled` now mutable via `Update`).
 
+## 3b. Global routes
+
+- [x] `RoutesSave` — server-level outgoing routes as singleton
+      `mox:GlobalRoutes`.
+- [ ] `Transports` — read-only static transports lookup; route resources refer
+      to transport names but do not expose transport definitions.
+
+## 3c. Webserver config
+
+- [x] `WebserverConfig` / `WebserverConfigSave` — dynamic web redirects and
+      handlers as singleton `mox:WebserverConfig`.
+
+## 3d. Log level config
+
+- [x] `LogLevels`, `LogLevelSet`, `LogLevelRemove` — package-level overrides as
+      `mox:LogLevel`.
+
+## 3e. DNSBL monitoring config
+
+- [x] `MonitorDNSBLsSave` — dynamic DNSBL monitoring zones as singleton
+      `mox:DNSBLMonitoring`.
+- [ ] `DNSBLStatus` — runtime diagnostics; not modelled as desired state.
+
+## 3f. Update check setting
+
+- [x] `CheckUpdatesEnabled` — read-only invoke (`getCheckUpdatesEnabled`).
+- [ ] Writable update-check setting — not exposed by mox admin API; this is a
+      static `mox.conf` field.
+
 ## 4. Read-only data sources (Pulumi invokes / functions)
 
 These return state with no mutation — expose as invokes (`getX`) rather than
@@ -105,5 +135,5 @@ there's a concrete use case.
   `QueueRequeue`, `QueueTransportSet`, `QueueSuppress*`, etc.
 - Webhooks/hooks: `Hook*` (incoming/outgoing webhook management & retries).
 - Reporting: DMARC / TLSRPT aggregate report viewing & suppression lists.
-- DNSBL monitoring, log-level control, webserver/transport config, TLS public
-  key add/remove for client auth.
+- DNSBL status diagnostics, transport config, TLS public key add/remove for
+  client auth.
