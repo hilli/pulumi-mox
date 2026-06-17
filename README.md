@@ -8,8 +8,8 @@ and **addresses**, and read mox-generated **DNS records** so they can be
 programmed into a DNS provider (e.g. Cloudflare).
 
 > **Status: usable.** This repository compiles, vets cleanly, and ships fully
-> wired resources for domains, accounts, addresses, aliases, Sieve scripts,
-> global routes, webserver config, log levels, and DNSBL monitoring with
+> wired resources for domains, accounts, addresses, aliases, DKIM selectors,
+> Sieve scripts, global routes, webserver config, log levels, and DNSBL monitoring with
 > idempotent Create, Read-based drift detection, Update, and Delete. A committed,
 > tagged Go SDK is
 > published; other languages are generated on demand (see
@@ -73,6 +73,7 @@ provider/
   account.go                   Account resource — full CRUD + account settings/routes
   address.go                   Address resource — full CRUD
   alias.go                     Alias/mailing-list resource — full CRUD
+  dkim_selector.go             Domain DKIM selector resource — full CRUD
   sieve.go                     Account Sieve script resource — full CRUD + rename
   global_routes.go             Server-level outgoing routes singleton resource
   webserver_config.go          Web redirects/handlers singleton resource
@@ -84,6 +85,8 @@ internal/moxadmin/
   client.go                    sherpa HTTP client (session/cookie + CSRF)
 examples/yaml/
   Pulumi.yaml                  Localserve smoke example used by make e2e
+examples/yaml-dkim/
+  Pulumi.yaml                  Focused runnable DKIM selector example
 examples/yaml-advanced/
   Pulumi.yaml                  Richer reference example for real deployments
 Makefile                       build / install_plugin / gen_sdk / tidy / test
@@ -123,6 +126,9 @@ Source of truth: `../mox/webadmin/admin.go` and `../mox/webadmin/api.json`
 | `AddressAdd(address, accountName string)`                | :2007 | Address.Create     |
 | `AddressRemove(address string)`                          | :2013 | Address.Delete     |
 | `SetPassword(accountName, password string)` (min 8 chars)| :2021 | Account.Create     |
+| `DomainDKIMAdd(...)`                                     | :2843 | DomainDKIMSelector.Create |
+| `DomainDKIMRemove(domain, selector)`                     | :2853 | DomainDKIMSelector.Delete |
+| `DomainDKIMSave(domain, selectors, sign)`                | :2865 | DomainDKIMSelector.Create/Update |
 
 ### Gotchas
 
@@ -183,6 +189,17 @@ Inputs: `address`, `members`, and optional list behavior flags. Create uses
 `AliasAdd`; Read reflects membership and managed settings from `DomainConfig`;
 Update adds/removes members and updates list behavior in place; Delete calls
 `AliasRemove`.
+
+### `mox:DomainDKIMSelector` (fully wired)
+
+Inputs: `domain`, `selector`, optional `algorithm`, `hash`, canonicalization
+flags, `sealHeaders`, `headers`, `lifetimeSeconds`, and `sign`. Create adopts an
+existing selector or calls `DomainDKIMAdd` to generate a server-side private key,
+then calls `DomainDKIMSave` with the full current selector map while preserving
+unmanaged selectors. Update modifies only this selector's saveable settings and
+signing membership. Delete calls `DomainDKIMRemove`, which also removes the
+selector from the signing list. Changing `domain`, `selector`, or `algorithm`
+replaces the resource.
 
 ### `mox:Sieve` (fully wired)
 
@@ -349,11 +366,13 @@ pulumi up
 
 `examples/yaml/Pulumi.yaml` is intentionally localserve-friendly and safe for
 `make e2e`. It exercises every writable resource with values that work against a
-throwaway local server. `examples/yaml-advanced/Pulumi.yaml` shows richer
-real-world shapes: non-empty account/domain/global routes, Sieve activation,
-aliases, web redirects/handlers, log levels, DNSBL monitoring, and the read-only
-update-check invoke. The advanced route examples reference named transports that
-must already exist in static `mox.conf`.
+throwaway local server. `examples/yaml-dkim/Pulumi.yaml` is a focused runnable
+example for managing an additional DKIM selector. `examples/yaml-advanced/Pulumi.yaml`
+shows richer real-world shapes: non-empty account/domain/global routes, DKIM
+selector management, Sieve activation, aliases, web redirects/handlers, log
+levels, DNSBL monitoring, and the read-only update-check invoke. The advanced
+route examples reference named transports that must already exist in static
+`mox.conf`.
 
 ### Live e2e with `mox localserve`
 
@@ -364,8 +383,8 @@ mox backend — no real server or config required. It:
 2. starts an ephemeral `mox localserve` (admin API on `http://localhost:1080`,
    password `moxadmin`) in a temp dir;
 3. stands up the stack against a throwaway `file://` Pulumi backend, runs
-   `pulumi up` (creating `example.com`, accounts, an alias, Sieve script,
-   singleton config resources, and read-only invokes), performs a second
+   `pulumi up` (creating `example.com`, accounts, an alias, DKIM selector, Sieve
+   script, singleton config resources, and read-only invokes), performs a second
    `pulumi up` to exercise Sieve rename, prints key outputs, then
    `pulumi destroy`s and tears the whole thing down.
 

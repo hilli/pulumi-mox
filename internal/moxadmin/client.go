@@ -639,6 +639,32 @@ type DomainMTASTS struct {
 	MX []string `json:"MX"`
 }
 
+// Canonicalization mirrors mox's DKIM canonicalization settings.
+type Canonicalization struct {
+	HeaderRelaxed bool `json:"HeaderRelaxed"`
+	BodyRelaxed   bool `json:"BodyRelaxed"`
+}
+
+// DKIMSelector mirrors the DKIM selector fields that can be saved through
+// DomainDKIMSave, plus read-only fields returned by DomainConfig.
+type DKIMSelector struct {
+	Hash             string           `json:"Hash,omitempty"`
+	HashEffective    string           `json:"HashEffective,omitempty"`
+	Canonicalization Canonicalization `json:"Canonicalization,omitempty"`
+	Headers          []string         `json:"Headers,omitempty"`
+	HeadersEffective []string         `json:"HeadersEffective,omitempty"`
+	DontSealHeaders  bool             `json:"DontSealHeaders,omitempty"`
+	Expiration       string           `json:"Expiration,omitempty"`
+	PrivateKeyFile   string           `json:"PrivateKeyFile,omitempty"`
+	Algorithm        string           `json:"Algorithm,omitempty"`
+}
+
+// DKIMConfig mirrors a domain's DKIM selector map and signing selector list.
+type DKIMConfig struct {
+	Selectors map[string]DKIMSelector `json:"Selectors"`
+	Sign      []string                `json:"Sign"`
+}
+
 // SievePolicy mirrors the boolean domain-level Sieve policy toggles the provider
 // manages. Omitted fields inherit from the next broader scope.
 type SievePolicy struct {
@@ -664,6 +690,7 @@ type DomainConfig struct {
 	Routes                      []Route              `json:"Routes"`
 	Aliases                     map[string]Alias     `json:"Aliases"`
 	Sieve                       *SievePolicy         `json:"Sieve"`
+	DKIM                        DKIMConfig           `json:"DKIM"`
 }
 
 // WebserverConfig is the admin API shape for the dynamic webserver config. Reads
@@ -746,6 +773,32 @@ func (c *Client) DomainConfig(ctx context.Context, domain string) (DomainConfig,
 // the override.
 func (c *Client) DomainSieveSave(ctx context.Context, domain string, sieve *SievePolicy) error {
 	return c.Call(ctx, "DomainSieveSave", []any{domain, sieve}, nil)
+}
+
+// DomainDKIMAdd adds a DKIM selector and generates its private key. The selector
+// is not enabled for signing until DomainDKIMSave includes it in Sign.
+func (c *Client) DomainDKIMAdd(ctx context.Context, domain, selector, algorithm, hash string, headerRelaxed, bodyRelaxed, seal bool, headers []string, lifetimeNanos int64) error {
+	if headers == nil {
+		headers = []string{}
+	}
+	return c.Call(ctx, "DomainDKIMAdd", []any{domain, selector, algorithm, hash, headerRelaxed, bodyRelaxed, seal, headers, lifetimeNanos}, nil)
+}
+
+// DomainDKIMRemove removes a DKIM selector from a domain.
+func (c *Client) DomainDKIMRemove(ctx context.Context, domain, selector string) error {
+	return c.Call(ctx, "DomainDKIMRemove", []any{domain, selector}, nil)
+}
+
+// DomainDKIMSave saves settings for all existing selectors and the selector
+// names used for signing. It cannot add or remove selectors.
+func (c *Client) DomainDKIMSave(ctx context.Context, domain string, selectors map[string]DKIMSelector, sign []string) error {
+	if selectors == nil {
+		selectors = map[string]DKIMSelector{}
+	}
+	if sign == nil {
+		sign = []string{}
+	}
+	return c.Call(ctx, "DomainDKIMSave", []any{domain, selectors, sign}, nil)
 }
 
 // WebserverConfig returns the current dynamic webserver redirects and handlers.

@@ -111,6 +111,7 @@ func Provider() (p.Provider, error) {
 			infer.Resource(&WebserverConfig{}),
 			infer.Resource(&LogLevel{}),
 			infer.Resource(&DNSBLMonitoring{}),
+			infer.Resource(&DomainDKIMSelector{}),
 		).
 		WithFunctions(
 			infer.Function(&GetVersion{}),

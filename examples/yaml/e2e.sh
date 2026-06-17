@@ -137,6 +137,8 @@ echo
 log "Extra account created: $(pulumi stack output testUserAddress)"
 log "Generated account password: $(pulumi stack output testUserPassword --show-secrets)"
 log "Alias created: $(pulumi stack output aliasAddress)"
+log "DKIM selector created: $(pulumi stack output dkimSelector)"
+log "DKIM private key file: $(pulumi stack output dkimPrivateKeyFile)"
 log "Web redirects: $(pulumi stack output webRedirects)"
 log "DNSBL monitoring zones: $(pulumi stack output dnsblZones)"
 log "Update checks enabled: $(pulumi stack output checkUpdatesEnabled)"

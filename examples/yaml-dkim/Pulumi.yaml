@@ -1,0 +1,46 @@
+name: mox-dkim-example
+runtime: yaml
+description: Focused DKIM selector management example for the native mox provider.
+
+# This example is runnable against `mox localserve` or a real mox admin API.
+# Provider config is set on the stack:
+#   pulumi config set mox:adminUrl http://localhost:1080
+#   pulumi config set --secret mox:adminPassword moxadmin
+
+resources:
+  example:
+    type: mox:Domain
+    properties:
+      domain: example.com
+      account: postmaster
+
+  rotation2026:
+    type: mox:DomainDKIMSelector
+    properties:
+      domain: ${example.domain}
+      selector: "2026a"
+      # The algorithm controls key generation. Changing it replaces the selector
+      # because mox cannot change an existing selector's private key algorithm.
+      algorithm: ed25519
+      hash: sha256
+      headerRelaxed: true
+      bodyRelaxed: true
+      sealHeaders: true
+      # Empty headers use mox's default set. Set an explicit list when you want a
+      # stable policy managed in Pulumi.
+      headers:
+        - from
+        - subject
+        - date
+        - message-id
+      lifetimeSeconds: 1209600
+      sign: true
+
+outputs:
+  # DNS records from the domain resource are read when the domain is created or
+  # refreshed. After adding a new selector, run `pulumi refresh` if you need the
+  # domain output to include the newly generated DKIM TXT record.
+  dnsRecords: ${example.dnsRecords}
+  dkimSelector: ${rotation2026.selector}
+  dkimPrivateKeyFile: ${rotation2026.privateKeyFile}
+  dkimEffectiveHash: ${rotation2026.effectiveHash}

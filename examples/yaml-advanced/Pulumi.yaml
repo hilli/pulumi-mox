@@ -83,6 +83,24 @@ resources:
       listMembers: true
       allowMsgFrom: true
 
+  outboundDkim:
+    type: mox:DomainDKIMSelector
+    properties:
+      domain: ${example.domain}
+      selector: "2026a"
+      algorithm: ed25519
+      hash: sha256
+      headerRelaxed: true
+      bodyRelaxed: true
+      sealHeaders: true
+      headers:
+        - from
+        - subject
+        - date
+        - message-id
+      lifetimeSeconds: 1209600
+      sign: true
+
   filing:
     type: mox:Sieve
     properties:
@@ -149,6 +167,8 @@ resources:
 
 outputs:
   dkimRecords: ${example.dkimRecords}
+  dkimSelector: ${outboundDkim.selector}
+  dkimPrivateKeyFile: ${outboundDkim.privateKeyFile}
   generatedPassword: ${app.effectivePassword}
   supportAddress: ${supportAddress.address}
   aliasAddress: ${announcements.address}

@@ -1,17 +1,18 @@
 # Examples
 
-This directory contains two YAML examples:
+This directory contains three YAML examples:
 
 - `yaml/` is the runnable smoke example used by `make e2e`.
+- `yaml-dkim/` is a focused runnable DKIM selector management example.
 - `yaml-advanced/` is a reference example for real deployments.
 
 ## Runnable smoke example: `yaml/`
 
 `examples/yaml/Pulumi.yaml` is designed to run against `mox localserve`. It uses
 only config that exists in a throwaway localserve instance, while still exercising
-the provider's main resources: domains, accounts, addresses/aliases, Sieve,
-global routes, webserver config, log levels, DNSBL monitoring, and read-only
-update-check status.
+the provider's main resources: domains, accounts, addresses/aliases, DKIM
+selectors, Sieve, global routes, webserver config, log levels, DNSBL monitoring,
+and read-only update-check status.
 
 From the repository root:
 
@@ -38,6 +39,27 @@ If a localserve instance is already listening on `http://localhost:1080`, run:
 ```sh
 MOX_E2E_REUSE=1 make e2e
 ```
+
+## Focused DKIM example: `yaml-dkim/`
+
+`examples/yaml-dkim/Pulumi.yaml` shows one domain plus one additional DKIM
+selector enabled for signing. It can run against `mox localserve` or a real admin
+API, as long as the domain in the example is not already managed by another stack.
+
+Run it like the smoke example, but from `examples/yaml-dkim`:
+
+```sh
+make install_plugin
+cd examples/yaml-dkim
+pulumi stack init dev
+pulumi config set mox:adminUrl http://localhost:1080
+pulumi config set --secret mox:adminPassword moxadmin
+pulumi up
+```
+
+Mox generates the private key on the server. If you need the domain resource's
+`dnsRecords` output to include a newly added selector's TXT record immediately,
+run `pulumi refresh` after the selector has been created.
 
 ## Reference example: `yaml-advanced/`
 

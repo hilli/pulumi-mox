@@ -31,6 +31,8 @@ func (m *module) Construct(ctx *pulumi.Context, name, typ, urn string) (r pulumi
 		r = &DNSBLMonitoring{}
 	case "mox:index:Domain":
 		r = &Domain{}
+	case "mox:index:DomainDKIMSelector":
+		r = &DomainDKIMSelector{}
 	case "mox:index:GlobalRoutes":
 		r = &GlobalRoutes{}
 	case "mox:index:LogLevel":

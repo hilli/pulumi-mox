@@ -42,6 +42,24 @@ resources:
         - ${testuser.address}
       postPublic: false
 
+  pulumiDkim:
+    type: mox:DomainDKIMSelector
+    properties:
+      domain: ${example.domain}
+      selector: pulumi
+      algorithm: ed25519
+      hash: sha256
+      headerRelaxed: true
+      bodyRelaxed: true
+      sealHeaders: true
+      headers:
+        - from
+        - subject
+        - date
+        - message-id
+      lifetimeSeconds: 1209600
+      sign: true
+
   testuser2:
     type: mox:Account
     properties:
@@ -107,6 +125,8 @@ outputs:
   #   pulumi stack output testUserPassword --show-secrets
   testUserPassword: ${testuser.effectivePassword}
   aliasAddress: ${testlist.address}
+  dkimSelector: ${pulumiDkim.selector}
+  dkimPrivateKeyFile: ${pulumiDkim.privateKeyFile}
   webRedirects: ${webserver.redirects}
   dnsblZones: ${dnsblMonitoring.zones}
   checkUpdatesEnabled: ${updateCheck.enabled}
