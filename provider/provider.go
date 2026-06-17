@@ -18,7 +18,7 @@ import (
 
 // Version is the provider/plugin version. It is overridden at build time via
 // -ldflags "-X github.com/hilli/pulumi-mox/provider.Version=x.y.z".
-var Version = "0.2.3"
+var Version = "0.3.0"
 
 // Config holds the provider-level configuration. Values come from the Pulumi
 // stack config (mox:adminUrl, mox:adminPassword, mox:insecureSkipVerify) with
