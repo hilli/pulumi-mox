@@ -733,10 +733,17 @@ func (d *Domain) Delete(ctx context.Context, req infer.DeleteRequest[DomainState
 		// and must survive — removing it would break every domain referencing it.
 		acc, err := client.Account(ctx, account)
 		if err != nil {
+			// The account can disappear between the existence check above and
+			// this read (e.g. mox removes it as the domain's last address goes
+			// away during teardown). That is the desired end state, so treat a
+			// not-found as already-deleted rather than a hard failure.
+			if moxadmin.IsNotFound(err) {
+				return infer.DeleteResponse{}, nil
+			}
 			return infer.DeleteResponse{}, fmt.Errorf("reading account %q for domain %q: %w", account, req.ID, err)
 		}
 		if len(acc.Destinations) == 0 {
-			if err := client.AccountRemove(ctx, account); err != nil {
+			if err := client.AccountRemove(ctx, account); err != nil && !moxadmin.IsNotFound(err) {
 				return infer.DeleteResponse{}, fmt.Errorf("removing account %q for domain %q: %w", account, req.ID, err)
 			}
 		}

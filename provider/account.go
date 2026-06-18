@@ -454,7 +454,10 @@ func (a *Account) Delete(ctx context.Context, req infer.DeleteRequest[AccountSta
 	if err != nil {
 		return infer.DeleteResponse{}, err
 	}
-	if err := client.AccountRemove(ctx, req.ID); err != nil {
+	// A not-found error means the account is already gone (e.g. removed with
+	// its domain during teardown), which is the desired end state, so Delete is
+	// idempotent and treats it as success.
+	if err := client.AccountRemove(ctx, req.ID); err != nil && !moxadmin.IsNotFound(err) {
 		return infer.DeleteResponse{}, fmt.Errorf("removing account %q: %w", req.ID, err)
 	}
 	return infer.DeleteResponse{}, nil

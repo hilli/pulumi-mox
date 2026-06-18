@@ -132,7 +132,9 @@ func (a *Address) Delete(ctx context.Context, req infer.DeleteRequest[AddressSta
 	if err != nil {
 		return infer.DeleteResponse{}, err
 	}
-	if err := client.AddressRemove(ctx, req.ID); err != nil {
+	// A not-found error means the address is already gone (the desired end
+	// state), so Delete is idempotent and treats it as success.
+	if err := client.AddressRemove(ctx, req.ID); err != nil && !moxadmin.IsNotFound(err) {
 		return infer.DeleteResponse{}, fmt.Errorf("removing address %q: %w", req.ID, err)
 	}
 	return infer.DeleteResponse{}, nil
